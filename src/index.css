@@ -1,0 +1,71 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Figtree', ui-sans-serif, system-ui, 'Segoe UI', Roboto, sans-serif;
+
+  /* Clinical status semantics. Used for vitals, lab flags and triage. */
+  --color-status-normal: var(--color-emerald-600);
+  --color-status-abnormal: var(--color-amber-600);
+  --color-status-critical: var(--color-red-600);
+
+  --radius-card: 0.875rem;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-cyan-50);
+    color: var(--color-cyan-950);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* 3-4px focus ring, per WCAG AAA focus guidance. */
+  :focus-visible {
+    outline: 3px solid var(--color-cyan-600);
+    outline-offset: 2px;
+    border-radius: 0.25rem;
+  }
+
+  /* Numeric columns in clinical tables must align. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer utilities {
+  .skip-link {
+    position: absolute;
+    left: 0.5rem;
+    top: 0.5rem;
+    z-index: 50;
+    transform: translateY(-200%);
+    background-color: var(--color-cyan-700);
+    color: white;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    transition: transform 150ms ease;
+  }
+
+  .skip-link:focus {
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
