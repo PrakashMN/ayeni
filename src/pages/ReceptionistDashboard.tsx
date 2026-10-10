@@ -1,4 +1,4 @@
-import { Banknote, CheckCircle2, DoorOpen, Printer, UserCheck } from 'lucide-react'
+import { Activity, Banknote, CalendarClock, CheckCircle2, DoorOpen, Printer, UserCheck } from 'lucide-react'
 import { useState } from 'react'
 import { Avatar, Button, Card, CardHeader, MetricTile, PageHeader, StatusPill } from '../components/ui/primitives'
 import { DataTable } from '../components/ui/Table'
@@ -12,6 +12,7 @@ import {
   pendingAppointments,
   todayKey,
 } from '../data/api'
+import { formatCurrency, formatDate } from '../lib/format'
 import type { Appointment } from '../data/types'
 
 function minutesOf(time: string): number {
@@ -33,17 +34,31 @@ export function ReceptionistDashboard() {
   }
 
   const flowStages = [
-    { label: 'Arriving', count: 0, className: 'bg-cyan-200' },
-    { label: 'Waiting', count: 0, className: 'bg-cyan-400' },
-    { label: 'In consultation', count: 0, className: 'bg-cyan-600' },
-    { label: 'Completed', count: 0, className: 'bg-emerald-600' },
+    {
+      label: 'Arriving',
+      count: today.filter((a) => a.status !== 'completed' && !isConfirmed(a)).length,
+      className: 'bg-cyan-300',
+    },
+    {
+      label: 'Waiting',
+      count: today.filter(
+        (a) => a.status !== 'completed' && isConfirmed(a) && minutesOf(a.time) > nowMinutes,
+      ).length,
+      className: 'bg-cyan-500',
+    },
+    {
+      label: 'In consultation',
+      count: today.filter(
+        (a) => a.status !== 'completed' && isConfirmed(a) && minutesOf(a.time) <= nowMinutes,
+      ).length,
+      className: 'bg-cyan-700',
+    },
+    {
+      label: 'Completed',
+      count: today.filter((a) => a.status === 'completed').length,
+      className: 'bg-emerald-500',
+    },
   ]
-  for (const a of today) {
-    if (a.status === 'completed') flowStages[3].count++
-    else if (!isConfirmed(a)) flowStages[0].count++
-    else if (minutesOf(a.time) <= nowMinutes) flowStages[2].count++
-    else flowStages[1].count++
-  }
 
   const collected = invoices
     .filter((i) => i.status === 'paid' || paid.includes(i.id))
@@ -56,6 +71,7 @@ export function ReceptionistDashboard() {
       <PageHeader
         title="Reception dashboard"
         subtitle="Front desk flow, appointment approvals and billing."
+        icon={<UserCheck className="h-6 w-6" aria-hidden="true" />}
         actions={
           <Button variant="primary">
             <UserCheck className="h-4 w-4" aria-hidden="true" />
@@ -69,27 +85,28 @@ export function ReceptionistDashboard() {
           label="Appointments today"
           value={today.length}
           hint={`${pendingAppointments.length} awaiting approval`}
-          severity={pendingAppointments.length > 0 ? 'abnormal' : 'normal'}
+          tone={pendingAppointments.length > 0 ? 'warning' : 'brand'}
           icon={<CheckCircle2 className="h-5 w-5" aria-hidden="true" />}
         />
         <MetricTile
           label="Collected"
-          value={`GH₵ ${collected.toLocaleString()}`}
+          value={formatCurrency(collected)}
           hint="Settled invoices"
+          tone="positive"
           icon={<Banknote className="h-5 w-5" aria-hidden="true" />}
         />
         <MetricTile
           label="Outstanding"
-          value={`GH₵ ${outstanding.toLocaleString()}`}
+          value={formatCurrency(outstanding)}
           hint={`${openInvoices.length} unpaid invoices`}
-          severity="critical"
+          tone="danger"
           icon={<Banknote className="h-5 w-5" aria-hidden="true" />}
         />
         <MetricTile
           label="Discharge coordination"
           value={draftDischarges.length}
           hint="Summaries to verify"
-          severity="abnormal"
+          tone="warning"
           icon={<DoorOpen className="h-5 w-5" aria-hidden="true" />}
         />
       </div>
@@ -98,15 +115,21 @@ export function ReceptionistDashboard() {
         <CardHeader
           title="Patient flow overview"
           description="Live view of where every patient is right now"
+          icon={<Activity className="h-5 w-5" aria-hidden="true" />}
         />
-        <div className="grid gap-3 p-5 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 p-5 sm:grid-cols-2 xl:grid-cols-4">
           {flowStages.map((s) => (
-            <div key={s.label} className="rounded-lg border border-cyan-200 bg-cyan-50/60 p-4">
+            <div
+              key={s.label}
+              className="card-shadow rounded-2xl border border-cyan-200/70 bg-white p-5"
+            >
               <div className="flex items-center gap-2">
                 <span className={`h-2.5 w-2.5 rounded-full ${s.className}`} aria-hidden="true" />
-                <p className="text-sm font-medium text-cyan-800">{s.label}</p>
+                <p className="text-sm font-medium text-cyan-700">{s.label}</p>
               </div>
-              <p className="tabular mt-1.5 text-2xl font-bold text-cyan-950">{s.count}</p>
+              <p className="tabular mt-2 text-3xl font-bold tracking-tight text-cyan-950">
+                {s.count}
+              </p>
             </div>
           ))}
         </div>
@@ -114,12 +137,13 @@ export function ReceptionistDashboard() {
 
       <Card>
         <CardHeader
-          title="Appointment confirmation"
+          title="Upcoming appointments"
           description="Requests raised through the app, WhatsApp bot and walk-in desk"
+          icon={<CalendarClock className="h-5 w-5" aria-hidden="true" />}
         />
         <DataTable
-          caption="Appointment requests awaiting front desk confirmation"
-          rows={appointments.filter((a) => a.date >= todayKey())}
+          caption="Upcoming and pending appointments"
+          rows={appointments.filter((a) => a.date >= todayKey() && a.status !== 'cancelled')}
           rowKey={(a) => a.id}
           columns={[
             {
@@ -147,7 +171,7 @@ export function ReceptionistDashboard() {
               header: 'When',
               render: (a) => (
                 <span className="tabular">
-                  <span className="block">{a.date}</span>
+                  <span className="block">{formatDate(a.date)}</span>
                   <span className="text-cyan-700">{a.time}</span>
                 </span>
               ),
@@ -172,11 +196,11 @@ export function ReceptionistDashboard() {
               header: 'Status',
               render: (a) =>
                 a.status === 'completed' ? (
-                  <StatusPill severity="normal">Completed</StatusPill>
+                  <StatusPill tone="positive">Completed</StatusPill>
                 ) : isConfirmed(a) ? (
-                  <StatusPill severity="normal">Confirmed</StatusPill>
+                  <StatusPill tone="positive">Confirmed</StatusPill>
                 ) : (
-                  <StatusPill severity="abnormal">Pending</StatusPill>
+                  <StatusPill tone="warning">Pending</StatusPill>
                 ),
             },
             {
@@ -185,7 +209,7 @@ export function ReceptionistDashboard() {
               align: 'right',
               render: (a) =>
                 a.status === 'completed' || isConfirmed(a) ? (
-                  <span className="text-sm text-cyan-600">—</span>
+                  <span className="text-sm text-cyan-700">—</span>
                 ) : (
                   <Button
                     variant="primary"
@@ -204,6 +228,7 @@ export function ReceptionistDashboard() {
           <CardHeader
             title="Billing management"
             description="Payments, confirmations and invoice generation"
+            icon={<Banknote className="h-5 w-5" aria-hidden="true" />}
           />
           <DataTable
             caption="Patient invoices and payment status"
@@ -225,16 +250,16 @@ export function ReceptionistDashboard() {
                 key: 'amount',
                 header: 'Amount',
                 align: 'right',
-                render: (i) => <span className="tabular">GH₵ {i.amount}</span>,
+                render: (i) => <span className="tabular">{formatCurrency(i.amount)}</span>,
               },
               {
                 key: 'status',
                 header: 'Status',
                 render: (i) => {
-                  if (paid.includes(i.id)) return <StatusPill severity="normal">Paid</StatusPill>
-                  if (i.status === 'paid') return <StatusPill severity="normal">Paid</StatusPill>
-                  if (i.status === 'partial') return <StatusPill severity="abnormal">Partial</StatusPill>
-                  return <StatusPill severity="critical">Unpaid</StatusPill>
+                  if (paid.includes(i.id)) return <StatusPill tone="positive">Paid</StatusPill>
+                  if (i.status === 'paid') return <StatusPill tone="positive">Paid</StatusPill>
+                  if (i.status === 'partial') return <StatusPill tone="warning">Partial</StatusPill>
+                  return <StatusPill tone="danger">Unpaid</StatusPill>
                 },
               },
               {
@@ -261,6 +286,7 @@ export function ReceptionistDashboard() {
           <CardHeader
             title="Discharge summary coordination"
             description="Verified with staff, awaiting doctor sign-off"
+            icon={<DoorOpen className="h-5 w-5" aria-hidden="true" />}
           />
           <ul className="divide-y divide-cyan-100">
             {draftDischarges.map((d) => (
@@ -268,16 +294,16 @@ export function ReceptionistDashboard() {
                 <div className="min-w-0">
                   <p className="font-semibold text-cyan-950">{getPatientName(d.patientId)}</p>
                   <p className="text-sm text-cyan-700">{d.diagnosis}</p>
-                  <p className="tabular text-xs text-cyan-600">
-                    Discharge {d.dischargeDate} · {d.completedBy}
+                  <p className="tabular text-xs text-cyan-700">
+                    Discharge {formatDate(d.dischargeDate)} · {d.completedBy}
                   </p>
                 </div>
                 {d.status === 'doctor-approved' ? (
-                  <StatusPill severity="normal">Complete</StatusPill>
+                  <StatusPill tone="positive">Complete</StatusPill>
                 ) : d.status === 'staff-verified' ? (
-                  <StatusPill severity="abnormal">Awaiting doctor</StatusPill>
+                  <StatusPill tone="warning">Awaiting doctor</StatusPill>
                 ) : (
-                  <StatusPill severity="critical">Draft</StatusPill>
+                  <StatusPill tone="danger">Draft</StatusPill>
                 )}
               </li>
             ))}

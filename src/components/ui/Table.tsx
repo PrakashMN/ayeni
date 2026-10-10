@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { EmptyState } from './primitives'
 
 export interface Column<T> {
   key: string
@@ -22,13 +23,10 @@ export function DataTable<T>({
   emptyMessage?: string
 }) {
   if (rows.length === 0) {
-    return (
-      <p className="px-5 py-10 text-center text-sm text-cyan-700">{emptyMessage}</p>
-    )
+    return <EmptyState message={emptyMessage} />
   }
 
-  const align = (a?: 'left' | 'right') =>
-    a === 'right' ? 'text-right' : 'text-left'
+  const align = (a?: 'left' | 'right') => (a === 'right' ? 'text-right' : 'text-left')
 
   return (
     <>
@@ -52,12 +50,12 @@ export function DataTable<T>({
             {rows.map((row) => (
               <tr
                 key={rowKey(row)}
-                className="border-b border-cyan-100 last:border-0 transition-colors duration-200 hover:bg-cyan-50/60"
+                className="border-b border-cyan-100 transition-colors duration-200 last:border-0 hover:bg-cyan-50/70"
               >
                 {columns.map((col) => (
                   <td
                     key={col.key}
-                    className={`px-5 py-3 align-middle text-cyan-900 ${align(col.align)}`}
+                    className={`px-5 py-3.5 align-middle text-cyan-900 ${align(col.align)}`}
                   >
                     {col.render(row)}
                   </td>
@@ -78,7 +76,7 @@ export function DataTable<T>({
               <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5">
                 {rest.map((col) => (
                   <div key={col.key} className={col.align === 'right' ? 'text-right' : ''}>
-                    <dt className="text-xs font-medium tracking-wide text-cyan-700 uppercase">
+                    <dt className="text-xs font-medium tracking-wide text-cyan-800 uppercase">
                       {col.header}
                     </dt>
                     <dd className="text-sm text-cyan-900">{col.render(row)}</dd>

@@ -1,6 +1,15 @@
 import { Activity, ClipboardList, FileCheck2, PackageCheck, Undo2 } from 'lucide-react'
 import { useState } from 'react'
-import { Avatar, Badge, Button, Card, CardHeader, MetricTile, PageHeader, StatusPill } from '../components/ui/primitives'
+import {
+  Avatar,
+  Button,
+  Card,
+  CardHeader,
+  MetricTile,
+  PageHeader,
+  StatusPill,
+  type Tone,
+} from '../components/ui/primitives'
 import { DataTable } from '../components/ui/Table'
 import {
   draftDischarges,
@@ -10,15 +19,16 @@ import {
   patientInitials,
   tasks,
 } from '../data/api'
+import { formatDate, formatDay, humanize } from '../lib/format'
 import type { Task, TaskStatus } from '../data/types'
 
 const CURRENT_STAFF = 'Nurse Grace Owusu'
 
-const statusSeverity: Record<TaskStatus, 'normal' | 'abnormal' | 'critical'> = {
-  open: 'abnormal',
-  'in-progress': 'abnormal',
-  reverted: 'critical',
-  done: 'normal',
+const statusTone: Record<TaskStatus, Tone> = {
+  open: 'warning',
+  'in-progress': 'brand',
+  reverted: 'danger',
+  done: 'positive',
 }
 
 export function StaffDashboard() {
@@ -42,6 +52,13 @@ export function StaffDashboard() {
       <PageHeader
         title="Staff dashboard"
         subtitle="Assigned duties, vitals capture and discharge summaries for your ward."
+        icon={<ClipboardList className="h-6 w-6" aria-hidden="true" />}
+        actions={
+          <Button variant="primary">
+            <Activity className="h-4 w-4" aria-hidden="true" />
+            Record vitals
+          </Button>
+        }
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -55,21 +72,20 @@ export function StaffDashboard() {
           label="Still open"
           value={openCount}
           hint="Across all staff"
-          severity="abnormal"
+          tone="warning"
           icon={<Activity className="h-5 w-5" aria-hidden="true" />}
         />
         <MetricTile
           label="Sent back for review"
           value={revertedCount}
           hint="Doctor feedback required"
-          severity="critical"
+          tone="danger"
           icon={<Undo2 className="h-5 w-5" aria-hidden="true" />}
         />
         <MetricTile
           label="Discharge summaries"
           value={draftDischarges.length}
           hint="Not yet doctor-approved"
-          severity="abnormal"
           icon={<FileCheck2 className="h-5 w-5" aria-hidden="true" />}
         />
       </div>
@@ -78,6 +94,7 @@ export function StaffDashboard() {
         <CardHeader
           title="My task queue"
           description="Complete a task to send an update back to the assigning doctor"
+          icon={<ClipboardList className="h-5 w-5" aria-hidden="true" />}
         />
         <ul className="divide-y divide-cyan-100">
           {myTasks.map((t) => {
@@ -96,24 +113,28 @@ export function StaffDashboard() {
                   <div className="min-w-0">
                     <p className="font-semibold text-cyan-950">{t.title}</p>
                     <p className="text-sm text-cyan-700">
-                      {getPatientName(t.patientId)} · due{' '}
-                      {new Date(t.due).toLocaleString()}
+                      {getPatientName(t.patientId)} · due {formatDay(t.due)}
                     </p>
-                    <p className="text-xs text-cyan-600">
+                    <p className="text-xs text-cyan-700">
                       Assigned by {t.assignedBy} · {t.kind}
                     </p>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <StatusPill severity={statusSeverity[status]}>{status}</StatusPill>
-                  <Button onClick={() => update(t, 'in-progress')}>Start</Button>
-                  <Button
-                    variant="primary"
-                    onClick={() => update(t, 'done')}
-                    disabled={status === 'done'}
-                  >
-                    Mark done
-                  </Button>
+                  <StatusPill tone={statusTone[status]}>{humanize(status)}</StatusPill>
+                  {status === 'done' ? null : (
+                    <>
+                      <Button
+                        onClick={() => update(t, 'in-progress')}
+                        disabled={status === 'in-progress'}
+                      >
+                        Start
+                      </Button>
+                      <Button variant="primary" onClick={() => update(t, 'done')}>
+                        Mark done
+                      </Button>
+                    </>
+                  )}
                 </div>
               </li>
             )
@@ -126,10 +147,11 @@ export function StaffDashboard() {
           <CardHeader
             title="Vital updates"
             description="Recorded readings feed the doctor and patient dashboards instantly"
+            icon={<Activity className="h-5 w-5" aria-hidden="true" />}
           />
           <DataTable
             caption="Vitals recorded across the ward"
-            rows={patients.slice(0, 6)}
+            rows={patients}
             rowKey={(p) => p.id}
             columns={[
               {
@@ -148,7 +170,7 @@ export function StaffDashboard() {
                 header: 'Entry',
                 render: (p) => {
                   const record = latestVitals(p.id)
-                  if (!record) return <span className="text-cyan-600">Not captured</span>
+                  if (!record) return <span className="text-cyan-700">Not captured</span>
                   return (
                     <span className="tabular text-cyan-800">
                       {record.bloodPressure} · {record.spo2}% SpO₂
@@ -164,7 +186,7 @@ export function StaffDashboard() {
                   return record ? (
                     <StatusPill severity={record.severity}>{record.severity}</StatusPill>
                   ) : (
-                    <span className="text-cyan-600">—</span>
+                    <span className="text-cyan-700">—</span>
                   )
                 },
               },
@@ -176,6 +198,7 @@ export function StaffDashboard() {
           <CardHeader
             title="Discharge summary management"
             description="Verify ward records before the doctor signs off"
+            icon={<FileCheck2 className="h-5 w-5" aria-hidden="true" />}
           />
           <ul className="divide-y divide-cyan-100">
             {draftDischarges.map((d) => {
@@ -188,15 +211,16 @@ export function StaffDashboard() {
                         {getPatientName(d.patientId)}
                       </p>
                       <p className="text-sm text-cyan-700">{d.diagnosis}</p>
-                      <p className="tabular mt-0.5 text-xs text-cyan-600">
-                        Admitted {d.admissionDate} · discharge {d.dischargeDate}
+                      <p className="tabular mt-0.5 text-xs text-cyan-700">
+                        Admitted {formatDate(d.admissionDate)} · discharge{' '}
+                        {formatDate(d.dischargeDate)}
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       {d.status === 'doctor-approved' ? (
-                        <StatusPill severity="normal">Approved</StatusPill>
+                        <StatusPill tone="positive">Approved</StatusPill>
                       ) : isVerified ? (
-                        <StatusPill severity="normal">Verified</StatusPill>
+                        <StatusPill tone="positive">Verified</StatusPill>
                       ) : (
                         <>
                           <Button>Edit</Button>
@@ -210,9 +234,6 @@ export function StaffDashboard() {
                       )}
                     </div>
                   </div>
-                  <p className="mt-2">
-                    <Badge>State: {d.status}</Badge>
-                  </p>
                 </li>
               )
             })}
@@ -224,6 +245,7 @@ export function StaffDashboard() {
         <CardHeader
           title="Task feedback loop"
           description="Completed tasks revert to the doctor for verification and further action"
+          icon={<PackageCheck className="h-5 w-5" aria-hidden="true" />}
         />
         <DataTable
           caption="Task feedback status"
@@ -251,7 +273,7 @@ export function StaffDashboard() {
               header: 'Status',
               render: (t) => {
                 const status = taskState[t.id]
-                return <StatusPill severity={statusSeverity[status]}>{status}</StatusPill>
+                return <StatusPill tone={statusTone[status]}>{humanize(status)}</StatusPill>
               },
             },
             {
@@ -262,7 +284,7 @@ export function StaffDashboard() {
                 taskState[t.id] === 'reverted' ? (
                   <Button>Reopen</Button>
                 ) : (
-                  <span className="text-sm text-cyan-600">—</span>
+                  <span className="text-sm text-cyan-700">—</span>
                 ),
             },
           ]}

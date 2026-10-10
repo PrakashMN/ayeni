@@ -1,22 +1,33 @@
-import { CheckCircle2, FlaskConical, Timer, Upload } from 'lucide-react'
+import { CheckCircle2, FileClock, FlaskConical, LayoutList, ScanLine, Timer, Upload } from 'lucide-react'
 import { useState } from 'react'
-import { Badge, Button, Card, CardHeader, MetricTile, PageHeader, StatusPill } from '../components/ui/primitives'
+import {
+  Badge,
+  Button,
+  Card,
+  CardHeader,
+  MetricTile,
+  PageHeader,
+  StatusPill,
+  type Tone,
+} from '../components/ui/primitives'
 import { DataTable } from '../components/ui/Table'
-import { BarChart, StackedSegments } from '../components/ui/Chart'
+import { BarChart, PieChart } from '../components/ui/Chart'
 import {
   getPatientName,
+  labCategoryCounts,
   labStatusCounts,
   labTests,
   newLabReports,
   testsForBooking,
 } from '../data/api'
+import { formatCurrency, humanize } from '../lib/format'
 import type { LabStatus } from '../data/types'
 
-const statusTone: Record<LabStatus, 'normal' | 'abnormal' | 'critical'> = {
-  booked: 'abnormal',
-  'sample-collected': 'abnormal',
-  processing: 'abnormal',
-  completed: 'normal',
+const statusTone: Record<LabStatus, Tone> = {
+  booked: 'neutral',
+  'sample-collected': 'brand',
+  processing: 'warning',
+  completed: 'positive',
 }
 
 export function LaboratoryDashboard() {
@@ -30,6 +41,7 @@ export function LaboratoryDashboard() {
       <PageHeader
         title="Laboratory dashboard"
         subtitle="Test throughput, report upload and the bookable catalogue."
+        icon={<FlaskConical className="h-6 w-6" aria-hidden="true" />}
         actions={
           <Button variant="primary">
             <Upload className="h-4 w-4" aria-hidden="true" />
@@ -49,7 +61,7 @@ export function LaboratoryDashboard() {
           label="In progress"
           value={(labStatusCounts['sample-collected'] ?? 0) + (labStatusCounts.processing ?? 0)}
           hint="Sample collected or processing"
-          severity="abnormal"
+          tone="warning"
           icon={<Timer className="h-5 w-5" aria-hidden="true" />}
         />
         <MetricTile
@@ -62,42 +74,51 @@ export function LaboratoryDashboard() {
           label="Awaiting upload"
           value={pendingUpload.length}
           hint="Results not yet attached"
-          severity="critical"
+          tone="danger"
           icon={<Upload className="h-5 w-5" aria-hidden="true" />}
         />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card>
-          <CardHeader title="Test analytics" description="Status mix across the lab" />
-          <div className="p-5">
-            <StackedSegments
-              segments={[
-                {
-                  label: 'Completed',
-                  value: labStatusCounts.completed ?? 0,
-                  className: 'bg-emerald-600',
-                },
-                {
-                  label: 'Processing',
-                  value: labStatusCounts.processing ?? 0,
-                  className: 'bg-cyan-500',
-                },
-                {
-                  label: 'Sample collected',
-                  value: labStatusCounts['sample-collected'] ?? 0,
-                  className: 'bg-cyan-400',
-                },
-                { label: 'Booked', value: labStatusCounts.booked ?? 0, className: 'bg-cyan-200' },
-              ]}
-            />
-          </div>
+          <CardHeader
+            title="Test analytics"
+            description="Status mix across the lab"
+            icon={<FlaskConical className="h-5 w-5" aria-hidden="true" />}
+          />
+          <PieChart
+            title="Laboratory test status distribution"
+            unit="tests"
+            segments={[
+              {
+                label: 'Completed',
+                value: labStatusCounts.completed ?? 0,
+                color: 'var(--color-emerald-500)',
+              },
+              {
+                label: 'Processing',
+                value: labStatusCounts.processing ?? 0,
+                color: 'var(--color-amber-500)',
+              },
+              {
+                label: 'Sample collected',
+                value: labStatusCounts['sample-collected'] ?? 0,
+                color: 'var(--color-cyan-600)',
+              },
+              {
+                label: 'Booked',
+                value: labStatusCounts.booked ?? 0,
+                color: 'var(--color-cyan-300)',
+              },
+            ]}
+          />
         </Card>
 
         <Card className="lg:col-span-2">
           <CardHeader
             title="Report upload management"
             description="Attach results and release them to the doctor and patient views"
+            icon={<Upload className="h-5 w-5" aria-hidden="true" />}
           />
           <DataTable
             caption="Laboratory tests and report upload status"
@@ -124,7 +145,9 @@ export function LaboratoryDashboard() {
               {
                 key: 'status',
                 header: 'Status',
-                render: (l) => <StatusPill severity={statusTone[l.status]}>{l.status}</StatusPill>,
+                render: (l) => (
+                  <StatusPill tone={statusTone[l.status]}>{humanize(l.status)}</StatusPill>
+                ),
               },
               {
                 key: 'action',
@@ -132,7 +155,7 @@ export function LaboratoryDashboard() {
                 align: 'right',
                 render: (l) =>
                   uploaded.includes(l.id) ? (
-                    <StatusPill severity="normal">Released</StatusPill>
+                    <StatusPill tone="positive">Released</StatusPill>
                   ) : (
                     <Button onClick={() => setUploaded((prev) => [...prev, l.id])}>
                       Upload PDF
@@ -149,6 +172,7 @@ export function LaboratoryDashboard() {
           <CardHeader
             title="Patient report history"
             description="Newly released results requiring attention"
+            icon={<FileClock className="h-5 w-5" aria-hidden="true" />}
           />
           <DataTable
             caption="Newly released lab reports"
@@ -167,7 +191,7 @@ export function LaboratoryDashboard() {
                 render: (l) => (
                   <span>
                     <span className="block">{l.testName}</span>
-                    <span className="tabular text-cyan-700">GH₵ {l.price}</span>
+                    <span className="tabular text-cyan-700">{formatCurrency(l.price)}</span>
                   </span>
                 ),
               },
@@ -184,6 +208,7 @@ export function LaboratoryDashboard() {
           <CardHeader
             title="Bookable test list"
             description="Catalogue exposed to the patient dashboard"
+            icon={<LayoutList className="h-5 w-5" aria-hidden="true" />}
           />
           <DataTable
             caption="Available laboratory tests with pricing"
@@ -205,7 +230,7 @@ export function LaboratoryDashboard() {
                 key: 'price',
                 header: 'Price',
                 align: 'right',
-                render: (t) => <span className="tabular">GH₵ {t.price}</span>,
+                render: (t) => <span className="tabular">{formatCurrency(t.price)}</span>,
               },
               {
                 key: 'turnaround',
@@ -222,18 +247,11 @@ export function LaboratoryDashboard() {
         <CardHeader
           title="Tests ordered per category"
           description="Distribution of current laboratory workload"
+          icon={<ScanLine className="h-5 w-5" aria-hidden="true" />}
         />
         <BarChart
           title="Laboratory tests ordered per category"
-          data={[
-            { label: 'Biochemistry', value: 3 },
-            { label: 'Haematology', value: 2 },
-            { label: 'Respiratory', value: 1 },
-            { label: 'Renal', value: 1 },
-            { label: 'Imaging', value: 1 },
-            { label: 'Immunology', value: 1 },
-            { label: 'Cardiac', value: 1 },
-          ]}
+          data={Object.entries(labCategoryCounts).map(([label, value]) => ({ label, value }))}
         />
       </Card>
     </>

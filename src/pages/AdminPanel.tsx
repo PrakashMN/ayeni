@@ -1,8 +1,29 @@
-import { Building2, ScrollText, ShieldAlert, UserCog } from 'lucide-react'
+import {
+  Building2,
+  CalendarClock,
+  ChartColumn,
+  Database,
+  ScrollText,
+  Settings,
+  ShieldAlert,
+  UserCog,
+  Users,
+} from 'lucide-react'
 import { useState } from 'react'
-import { Avatar, Badge, Button, Card, CardHeader, MetricTile, PageHeader, ProgressBar, StatusPill } from '../components/ui/primitives'
+import {
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  CardHeader,
+  MetricTile,
+  PageHeader,
+  ProgressBar,
+  StatusPill,
+  type Tone,
+} from '../components/ui/primitives'
 import { DataTable } from '../components/ui/Table'
-import { BarChart } from '../components/ui/Chart'
+import { LineChart, PieChart } from '../components/ui/Chart'
 import {
   appointments,
   auditEvents,
@@ -13,16 +34,24 @@ import {
   recordVolume,
   revenueCollected,
   revenueOutstanding,
+  systemConfig,
   userRoleCounts,
   users,
 } from '../data/api'
+import { formatCurrency, formatDateTime, humanize } from '../lib/format'
 import type { User } from '../data/types'
 
-const roleTone: Record<string, 'normal' | 'abnormal' | 'critical'> = {
-  active: 'normal',
-  invited: 'abnormal',
-  suspended: 'critical',
+const statusTone: Record<User['status'], Tone> = {
+  active: 'positive',
+  invited: 'warning',
+  suspended: 'danger',
 }
+
+const bookingSources = [
+  { source: 'app', color: 'var(--color-cyan-500)' },
+  { source: 'whatsapp', color: 'var(--color-emerald-500)' },
+  { source: 'walk-in', color: 'var(--color-amber-500)' },
+] as const
 
 export function AdminPanel() {
   const [roleFilter, setRoleFilter] = useState<'all' | User['role']>('all')
@@ -39,6 +68,7 @@ export function AdminPanel() {
       <PageHeader
         title="Admin panel"
         subtitle="User access, system configuration and the security audit trail."
+        icon={<ShieldAlert className="h-6 w-6" aria-hidden="true" />}
         actions={
           <Button variant="primary">
             <UserCog className="h-4 w-4" aria-hidden="true" />
@@ -62,16 +92,16 @@ export function AdminPanel() {
         />
         <MetricTile
           label="Revenue collected"
-          value={`GH₵ ${revenueCollected.toLocaleString()}`}
-          hint={`GH₵ ${revenueOutstanding.toLocaleString()} outstanding`}
-          severity="abnormal"
+          value={formatCurrency(revenueCollected)}
+          hint={`${formatCurrency(revenueOutstanding)} outstanding`}
+          tone="positive"
           icon={<ScrollText className="h-5 w-5" aria-hidden="true" />}
         />
         <MetricTile
           label="Security events"
           value={auditEvents.filter((a) => a.severity !== 'normal').length}
           hint="Require review"
-          severity="critical"
+          tone="danger"
           icon={<ShieldAlert className="h-5 w-5" aria-hidden="true" />}
         />
       </div>
@@ -80,6 +110,7 @@ export function AdminPanel() {
         <CardHeader
           title="User role management"
           description="Grant, edit or revoke access for every staff group"
+          icon={<Users className="h-5 w-5" aria-hidden="true" />}
         />
         <div className="flex flex-wrap items-center gap-2 border-b border-cyan-100 p-5">
           <span className="text-sm font-semibold text-cyan-900">Filter by role</span>
@@ -89,7 +120,7 @@ export function AdminPanel() {
               type="button"
               onClick={() => setRoleFilter(r)}
               aria-pressed={roleFilter === r}
-              className={`min-h-11 cursor-pointer rounded-lg px-3 text-sm font-medium capitalize transition-colors duration-200 ${
+              className={`min-h-11 cursor-pointer rounded-xl px-3 text-sm font-medium capitalize transition-colors duration-200 ${
                 roleFilter === r
                   ? 'bg-cyan-700 text-white'
                   : 'bg-white text-cyan-800 ring-1 ring-cyan-300 ring-inset hover:bg-cyan-50'
@@ -122,22 +153,24 @@ export function AdminPanel() {
             {
               key: 'role',
               header: 'Role',
-              render: (u) => <Badge>{u.role}</Badge>,
+              render: (u) => (
+                <Badge>
+                  <span className="capitalize">{u.role}</span>
+                </Badge>
+              ),
             },
             {
               key: 'lastActive',
               header: 'Last active',
               render: (u) => (
-                <span className="tabular text-cyan-800">
-                  {new Date(u.lastActive).toLocaleString()}
-                </span>
+                <span className="tabular text-cyan-800">{formatDateTime(u.lastActive)}</span>
               ),
             },
             {
               key: 'status',
               header: 'Access',
               render: (u) => (
-                <StatusPill severity={roleTone[u.status] ?? 'normal'}>{u.status}</StatusPill>
+                <StatusPill tone={statusTone[u.status]}>{u.status}</StatusPill>
               ),
             },
             {
@@ -160,6 +193,7 @@ export function AdminPanel() {
           <CardHeader
             title="Security & audit logs"
             description="Every privileged action across the platform"
+            icon={<ShieldAlert className="h-5 w-5" aria-hidden="true" />}
           />
           <ul className="divide-y divide-cyan-100">
             {auditEvents.map((a) => (
@@ -168,8 +202,8 @@ export function AdminPanel() {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-cyan-950">{a.action}</p>
                   <p className="text-sm text-cyan-700">{a.target}</p>
-                  <p className="tabular mt-0.5 text-xs text-cyan-500">
-                    {a.actor} · {a.role} · {new Date(a.at).toLocaleString()}
+                  <p className="tabular mt-0.5 text-xs text-cyan-700">
+                    {a.actor} · {a.role} · {formatDateTime(a.at)}
                   </p>
                 </div>
               </li>
@@ -179,7 +213,11 @@ export function AdminPanel() {
 
         <div className="flex flex-col gap-6">
           <Card>
-            <CardHeader title="Users by role" description="Access distribution" />
+            <CardHeader
+              title="Users by role"
+              description="Access distribution"
+              icon={<ChartColumn className="h-5 w-5" aria-hidden="true" />}
+            />
             <div className="space-y-4 p-5">
               {Object.entries(userRoleCounts).map(([role, count]) => (
                 <ProgressBar
@@ -197,15 +235,10 @@ export function AdminPanel() {
             <CardHeader
               title="System configuration"
               description="Departments, services and internal workflows"
+              icon={<Settings className="h-5 w-5" aria-hidden="true" />}
             />
             <ul className="divide-y divide-cyan-100">
-              {[
-                { label: 'Clinical departments', value: '8 configured' },
-                { label: 'Dashboard modules', value: '7 published' },
-                { label: 'WhatsApp bot integration', value: 'Connected' },
-                { label: 'Medora app sync', value: 'Live' },
-                { label: 'Audit retention', value: '7 years' },
-              ].map((row) => (
+              {systemConfig.map((row) => (
                 <li
                   key={row.label}
                   className="flex items-center justify-between gap-3 px-5 py-3.5"
@@ -224,28 +257,16 @@ export function AdminPanel() {
           <CardHeader
             title="Data oversight — appointments"
             description="Booking source mix across the platform"
+            icon={<CalendarClock className="h-5 w-5" aria-hidden="true" />}
           />
-          <DataTable
-            caption="Appointments by booking source"
-            rows={['app', 'whatsapp', 'walk-in'].map((source) => ({
-              source,
-              count: appointments.filter((a) => a.source === source).length,
+          <PieChart
+            title="Appointments by booking source"
+            unit="bookings"
+            segments={bookingSources.map(({ source, color }) => ({
+              label: humanize(source),
+              value: appointments.filter((a) => a.source === source).length,
+              color,
             }))}
-            rowKey={(r) => r.source}
-            columns={[
-              {
-                key: 'source',
-                header: 'Source',
-                primary: true,
-                render: (r) => <span className="capitalize">{r.source}</span>,
-              },
-              {
-                key: 'count',
-                header: 'Appointments',
-                align: 'right',
-                render: (r) => <span className="tabular">{r.count}</span>,
-              },
-            ]}
           />
         </Card>
 
@@ -253,8 +274,9 @@ export function AdminPanel() {
           <CardHeader
             title="Volume trend"
             description="Clinical records created over the last seven days"
+            icon={<Database className="h-5 w-5" aria-hidden="true" />}
           />
-          <BarChart
+          <LineChart
             title="Clinical records created per day over the last seven days"
             data={recordVolume}
           />
@@ -265,6 +287,7 @@ export function AdminPanel() {
         <CardHeader
           title="Cross-module record counts"
           description="Every module writes into the same patient record"
+          icon={<Database className="h-5 w-5" aria-hidden="true" />}
         />
         <DataTable
           caption="Record counts per module"

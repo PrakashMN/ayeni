@@ -13,6 +13,7 @@ import {
   patients,
   prescriptions,
   problemSummaries,
+  systemConfig,
   tasks,
   users,
   vitals,
@@ -121,6 +122,7 @@ export function countBy<T>(items: T[], key: (item: T) => string): Record<string,
 }
 
 export const labStatusCounts = countBy(labTests, (l) => l.status as LabStatus)
+export const labCategoryCounts = countBy(labTests, (l) => l.category)
 export const userRoleCounts = countBy(users, (u) => u.role)
 
 export const newLabReports = labTests.filter((l) => l.isNew && l.reportUploaded)
@@ -169,6 +171,7 @@ export {
   notifications,
   patients,
   prescriptions,
+  systemConfig,
   tasks,
   users,
   vitals,

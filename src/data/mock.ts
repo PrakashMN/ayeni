@@ -1027,3 +1027,11 @@ export const bookableTests = [
   { name: 'Chest X-ray', category: 'Imaging', price: 150, turnaround: 'Same day' },
   { name: 'Thyroid panel', category: 'Endocrinology', price: 190, turnaround: '48 hours' },
 ]
+
+export const systemConfig = [
+  { label: 'Clinical departments', value: '8 configured' },
+  { label: 'Dashboard modules', value: '7 published' },
+  { label: 'WhatsApp bot integration', value: 'Connected' },
+  { label: 'Medora app sync', value: 'Live' },
+  { label: 'Audit retention', value: '7 years' },
+]

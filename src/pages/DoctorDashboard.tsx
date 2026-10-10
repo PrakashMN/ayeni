@@ -1,8 +1,19 @@
-import { AlertTriangle, ClipboardCheck, FileText, Stethoscope, UserPlus, Users } from 'lucide-react'
+import {
+  AlertTriangle,
+  ChartColumn,
+  ClipboardCheck,
+  ClipboardList,
+  FileText,
+  ListChecks,
+  NotebookPen,
+  Stethoscope,
+  UserPlus,
+  Users,
+} from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Avatar, Badge, Button, Card, CardHeader, MetricTile, PageHeader, ProgressBar, StatusPill } from '../components/ui/primitives'
 import { DataTable } from '../components/ui/Table'
-import { BarChart } from '../components/ui/Chart'
+import { LineChart } from '../components/ui/Chart'
 import {
   appointmentsFor,
   consultationVolume,
@@ -62,6 +73,7 @@ export function DoctorDashboard() {
       <PageHeader
         title="Doctor dashboard"
         subtitle="Cases, problem summaries and task delegation for your department."
+        icon={<Stethoscope className="h-6 w-6" aria-hidden="true" />}
         actions={
           <Button variant="primary">
             <UserPlus className="h-4 w-4" aria-hidden="true" />
@@ -88,7 +100,6 @@ export function DoctorDashboard() {
           label="New reports"
           value={newLabReports.length}
           hint="Uploaded since last review"
-          severity="abnormal"
           icon={<FileText className="h-5 w-5" aria-hidden="true" />}
         />
         <MetricTile
@@ -104,6 +115,7 @@ export function DoctorDashboard() {
         <CardHeader
           title="Today's list"
           description="OPD and IPD patients, sorted by urgency"
+          icon={<ClipboardList className="h-5 w-5" aria-hidden="true" />}
         />
         <div className="flex flex-col gap-3 border-b border-cyan-100 p-5 sm:flex-row sm:items-end">
           <div className="flex-1">
@@ -116,7 +128,7 @@ export function DoctorDashboard() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Name, MRN, condition or department"
-              className="mt-1.5 h-11 w-full rounded-lg border border-cyan-300 px-3 text-base text-cyan-900 placeholder:text-cyan-500"
+              className="mt-1.5 h-11 w-full rounded-xl border border-cyan-300 px-3 text-base text-cyan-900 placeholder:text-cyan-600"
             />
           </div>
           <fieldset>
@@ -128,7 +140,7 @@ export function DoctorDashboard() {
                   type="button"
                   onClick={() => setRiskFilter(r)}
                   aria-pressed={riskFilter === r}
-                  className={`min-h-11 cursor-pointer rounded-lg px-3 text-sm font-medium capitalize transition-colors duration-200 ${
+                  className={`min-h-11 cursor-pointer rounded-xl px-3 text-sm font-medium capitalize transition-colors duration-200 ${
                     riskFilter === r
                       ? 'bg-cyan-700 text-white'
                       : 'bg-white text-cyan-800 ring-1 ring-cyan-300 ring-inset hover:bg-cyan-50'
@@ -183,7 +195,7 @@ export function DoctorDashboard() {
               header: 'Allergies',
               render: (p) =>
                 p.allergies.includes('None known') ? (
-                  <span className="text-cyan-600">Nil</span>
+                  <span className="text-cyan-700">Nil</span>
                 ) : (
                   <span className="font-medium text-red-700">{p.allergies.join(', ')}</span>
                 ),
@@ -202,6 +214,7 @@ export function DoctorDashboard() {
           <CardHeader
             title="Problem summary review"
             description="AI-generated findings awaiting your sign-off"
+            icon={<ClipboardCheck className="h-5 w-5" aria-hidden="true" />}
           />
           <ul className="divide-y divide-cyan-100">
             {unapproved.map((p) => {
@@ -215,7 +228,7 @@ export function DoctorDashboard() {
                       <p className="font-semibold text-cyan-950">
                         {p.name}
                         {summary.aiGenerated ? (
-                          <span className="ml-2 text-xs font-medium text-cyan-600">
+                          <span className="ml-2 text-xs font-medium text-cyan-700">
                             AI draft
                           </span>
                         ) : null}
@@ -251,6 +264,7 @@ export function DoctorDashboard() {
           <CardHeader
             title="New report summaries"
             description="Flagged as unread by the laboratory"
+            icon={<FileText className="h-5 w-5" aria-hidden="true" />}
           />
           <DataTable
             caption="New diagnostic reports awaiting review"
@@ -289,6 +303,7 @@ export function DoctorDashboard() {
           <CardHeader
             title="Task assignment"
             description="Delegate duties to nursing staff and track completion"
+            icon={<ListChecks className="h-5 w-5" aria-hidden="true" />}
           />
           <ul className="divide-y divide-cyan-100">
             {tasks.map((t) => {
@@ -302,7 +317,12 @@ export function DoctorDashboard() {
                   <div className="min-w-0">
                     <p className="font-semibold text-cyan-950">{t.title}</p>
                     <p className="text-sm text-cyan-700">
-                      Due {new Date(t.due).toLocaleString()} · status {t.status}
+                      Due{' '}
+                      {new Date(t.due).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                      })}{' '}
+                      · status {t.status}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -315,7 +335,7 @@ export function DoctorDashboard() {
                       onChange={(e) =>
                         setAssignments((prev) => ({ ...prev, [t.id]: e.target.value }))
                       }
-                      className="h-11 cursor-pointer rounded-lg border border-cyan-300 bg-white px-3 text-sm text-cyan-900"
+                      className="h-11 cursor-pointer rounded-xl border border-cyan-300 bg-white px-3 text-sm text-cyan-900"
                     >
                       {nurses.map((n) => (
                         <option key={n.id} value={n.name}>
@@ -345,7 +365,11 @@ export function DoctorDashboard() {
         </Card>
 
         <Card>
-          <CardHeader title="Caseload" description="Open tasks by urgency" />
+          <CardHeader
+            title="Caseload"
+            description="Open tasks by urgency"
+            icon={<Users className="h-5 w-5" aria-hidden="true" />}
+          />
           <div className="space-y-5 p-5">
             <ProgressBar
               value={openTasks.filter((t) => t.severity === 'critical').length}
@@ -374,15 +398,27 @@ export function DoctorDashboard() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <CardHeader title="Consultation volume" description="Last seven days, all clinicians" />
-          <BarChart
-            title="Consultations completed per day over the last seven days"
-            data={consultationVolume}
+          <CardHeader
+            title="Consultation volume"
+            description="Last seven days, all clinicians"
+            icon={<ChartColumn className="h-5 w-5" aria-hidden="true" />}
           />
+          <div className="p-4">
+            <div className="overflow-hidden rounded-2xl border border-cyan-200/70 bg-cyan-50/70">
+              <LineChart
+                title="Consultations completed per day over the last seven days"
+                data={consultationVolume}
+              />
+            </div>
+          </div>
         </Card>
 
         <Card>
-          <CardHeader title="Consultation note" description="Draft saved to the active case" />
+          <CardHeader
+            title="Consultation note"
+            description="Draft saved to the active case"
+            icon={<NotebookPen className="h-5 w-5" aria-hidden="true" />}
+          />
           <div className="p-5">
             <label htmlFor="consult-note" className="text-sm font-semibold text-cyan-900">
               Clinical note
@@ -396,7 +432,7 @@ export function DoctorDashboard() {
               }}
               rows={5}
               placeholder="Document findings, plan and follow-up interval…"
-              className="mt-2 w-full rounded-lg border border-cyan-300 p-3 text-base text-cyan-900 placeholder:text-cyan-500"
+              className="mt-2 w-full rounded-xl border border-cyan-300 p-3 text-base text-cyan-900 placeholder:text-cyan-600"
             />
             <div className="mt-3 flex items-center gap-3">
               <Button variant="primary" onClick={() => setNoteSaved(true)}>
