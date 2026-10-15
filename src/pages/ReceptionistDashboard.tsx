@@ -37,21 +37,21 @@ export function ReceptionistDashboard() {
     {
       label: 'Arriving',
       count: today.filter((a) => a.status !== 'completed' && !isConfirmed(a)).length,
-      className: 'bg-cyan-300',
+      className: 'bg-cyan-200',
     },
     {
       label: 'Waiting',
       count: today.filter(
         (a) => a.status !== 'completed' && isConfirmed(a) && minutesOf(a.time) > nowMinutes,
       ).length,
-      className: 'bg-cyan-500',
+      className: 'bg-cyan-400',
     },
     {
       label: 'In consultation',
       count: today.filter(
         (a) => a.status !== 'completed' && isConfirmed(a) && minutesOf(a.time) <= nowMinutes,
       ).length,
-      className: 'bg-cyan-700',
+      className: 'bg-cyan-600',
     },
     {
       label: 'Completed',
@@ -280,6 +280,11 @@ export function ReceptionistDashboard() {
               },
             ]}
           />
+          {printed.length > 0 ? (
+            <p className="border-t border-cyan-100 px-5 py-3 text-xs text-cyan-700">
+              {printed.length} invoice(s) printed this session.
+            </p>
+          ) : null}
         </Card>
 
         <Card>
@@ -308,11 +313,6 @@ export function ReceptionistDashboard() {
               </li>
             ))}
           </ul>
-          {printed.length > 0 ? (
-            <p className="border-t border-cyan-100 px-5 py-3 text-xs text-cyan-700">
-              {printed.length} invoice(s) printed this session.
-            </p>
-          ) : null}
         </Card>
       </div>
     </>

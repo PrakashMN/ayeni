@@ -77,7 +77,7 @@ export function PageHeader({
     <div className="flex flex-wrap items-center justify-between gap-4">
       <div className="flex min-w-0 items-center gap-4">
         {icon ? (
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-600 to-cyan-500 text-white shadow-lg shadow-cyan-500/25">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-700 to-cyan-600 text-white shadow-lg shadow-cyan-900/25">
             {icon}
           </span>
         ) : null}

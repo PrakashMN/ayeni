@@ -106,7 +106,7 @@ export function PharmacyDashboard() {
               key: 'stock',
               header: 'Stock level',
               render: (i) => (
-                <div className="min-w-[160px]">
+                <div className="min-w-0 sm:min-w-[160px]">
                   <ProgressBar
                     value={i.stock}
                     max={stockScale}

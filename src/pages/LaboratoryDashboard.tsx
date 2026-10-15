@@ -250,6 +250,7 @@ export function LaboratoryDashboard() {
           icon={<ScanLine className="h-5 w-5" aria-hidden="true" />}
         />
         <BarChart
+          horizontal
           title="Laboratory tests ordered per category"
           data={Object.entries(labCategoryCounts).map(([label, value]) => ({ label, value }))}
         />

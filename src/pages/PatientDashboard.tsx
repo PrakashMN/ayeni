@@ -3,27 +3,45 @@ import {
   Bell,
   BellRing,
   CalendarClock,
-  ChefHat,
+  CalendarPlus,
+  ClipboardList,
   Droplet,
   FileText,
+  FileUp,
   FlaskConical,
   Gauge,
   HeartPulse,
+  IdCard,
+  Lightbulb,
+  MessageCircle,
+  Phone,
   Pill,
   Search,
+  ShoppingCart,
   Sparkles,
   Stethoscope,
   Thermometer,
   TriangleAlert,
   Upload,
   UserRound,
+  Utensils,
+  Wallet,
   Weight,
   type LucideIcon,
 } from 'lucide-react'
 import { useState } from 'react'
-import { Badge, Button, Card, CardHeader, MetricTile, PageHeader, ProgressBar, StatusPill } from '../components/ui/primitives'
-import { DataTable } from '../components/ui/Table'
-import { BarChart } from '../components/ui/Chart'
+import {
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  CardHeader,
+  MetricTile,
+  ProgressBar,
+  StatusPill,
+} from '../components/ui/primitives'
+import { LineChart } from '../components/ui/Chart'
+
 import {
   currentPatient,
   currentPatientAppointments,
@@ -33,10 +51,10 @@ import {
   currentPatientPrescriptions,
   latestVitals,
   notifications,
-  testsForBooking,
+  patientInitials,
 } from '../data/api'
 import type { Department, Severity } from '../data/types'
-import { formatTime } from '../lib/format'
+import { formatDay, formatTime } from '../lib/format'
 
 const vitalsLabels: Record<Severity, string> = {
   normal: 'Within range',
@@ -87,12 +105,66 @@ function analyseSymptoms(input: string) {
   return triageRules.filter((r) => r.keywords.some((k) => text.includes(k)))
 }
 
+function greetingFor(hour: number): string {
+  if (hour < 12) return 'Good morning'
+  if (hour < 17) return 'Good afternoon'
+  return 'Good evening'
+}
+
+function dayLabel(value: string): string {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const target = new Date(value)
+  target.setHours(0, 0, 0, 0)
+  const diff = Math.round((target.getTime() - today.getTime()) / 86_400_000)
+  if (diff === 0) return 'Today'
+  if (diff === 1) return 'Tomorrow'
+  return formatDay(value)
+}
+
+const quickActions: { icon: LucideIcon; label: string }[] = [
+  { icon: CalendarPlus, label: 'Book appointment' },
+  { icon: FileUp, label: 'Upload report' },
+  { icon: FlaskConical, label: 'Book lab test' },
+  { icon: ShoppingCart, label: 'Order medicine' },
+  { icon: ClipboardList, label: 'View records' },
+  { icon: Wallet, label: 'Pay bill' },
+  { icon: Utensils, label: 'Diet plan' },
+  { icon: Stethoscope, label: 'Check symptoms' },
+]
+
+const healthTips = [
+  {
+    category: 'Diabetes care',
+    title: 'Pair carbs with protein',
+    body: 'Adding protein or healthy fat to a meal slows glucose absorption. Try groundnuts with your oatmeal or grilled fish with your rice to keep readings steadier.',
+  },
+  {
+    category: 'Hydration',
+    title: 'Drink a glass of water before meals',
+    body: 'Staying hydrated helps your kidneys flush excess sugar and can reduce hunger spikes between meals.',
+  },
+  {
+    category: 'Activity',
+    title: 'Walk for 10 minutes after eating',
+    body: 'A short walk after meals lowers post-meal glucose peaks without strenuous exercise.',
+  },
+  {
+    category: 'Sleep',
+    title: 'Protect 7 to 8 hours of sleep',
+    body: 'Poor sleep raises insulin resistance. Keep a consistent bedtime to steady your morning readings.',
+  },
+  {
+    category: 'Monitoring',
+    title: 'Log your readings consistently',
+    body: 'Recording your fasting glucose at the same time each day helps your care team spot trends early.',
+  },
+]
+
 export function PatientDashboard() {
   const [symptoms, setSymptoms] = useState('')
   const [analysed, setAnalysed] = useState(false)
   const [cancelledAppointments, setCancelledAppointments] = useState<string[]>([])
-  const [orderedMedicines, setOrderedMedicines] = useState<string[]>([])
-  const [bookedTests, setBookedTests] = useState<string[]>([])
   const [unreadOnly, setUnreadOnly] = useState(false)
 
   const vitals = latestVitals(currentPatient.id)
@@ -117,514 +189,567 @@ export function PatientDashboard() {
     { icon: Weight, label: 'Weight', value: vitals ? `${vitals.weightKg} kg` : '—' },
   ]
 
+  const profileTiles: { icon: LucideIcon; label: string; value: string }[] = [
+    { icon: Droplet, label: 'Blood group', value: currentPatient.bloodGroup },
+    { icon: IdCard, label: 'Age', value: `${currentPatient.age} yrs` },
+    { icon: UserRound, label: 'Sex', value: currentPatient.sex },
+    {
+      icon: CalendarClock,
+      label: 'Last visit',
+      value: formatDay(currentPatient.lastVisit),
+    },
+  ]
+
   return (
-    <>
-      <PageHeader
-        title={`Good morning, ${currentPatient.name.split(' ')[0]}`}
-        subtitle="Your appointments, reports, prescriptions and care plan in one place."
-        icon={<HeartPulse className="h-6 w-6" aria-hidden="true" />}
-        actions={
-          <>
-            <Button>
-              <CalendarClock className="h-4 w-4" aria-hidden="true" />
-              Book appointment
-            </Button>
-            <Button variant="primary">
-              <Upload className="h-4 w-4" aria-hidden="true" />
-              Upload report
-            </Button>
-          </>
-        }
-      />
-
-      <Card className="border-cyan-900/60 bg-gradient-to-br from-cyan-800 to-cyan-950 text-white">
-        <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-6 px-6 py-6 sm:px-8 sm:py-8 lg:gap-x-10">
-          <div>
-            <p className="flex items-center gap-2 text-sm font-semibold tracking-wide text-cyan-100 uppercase">
-              <UserRound className="h-5 w-5 text-cyan-200" aria-hidden="true" />
-              Patient
-            </p>
-            <p className="mt-1.5 text-2xl font-bold text-white">{currentPatient.name}</p>
-            <p className="tabular mt-0.5 text-sm text-cyan-100">
-              {currentPatient.mrn} · {currentPatient.age} yrs · {currentPatient.sex}
-            </p>
-          </div>
-          <div>
-            <p className="flex items-center gap-2 text-sm font-semibold tracking-wide text-cyan-100 uppercase">
-              <Droplet className="h-5 w-5 text-cyan-200" aria-hidden="true" />
-              Blood group
-            </p>
-            <p className="mt-1.5 text-2xl font-bold text-white">{currentPatient.bloodGroup}</p>
-          </div>
-          <div>
-            <p className="flex items-center gap-2 text-sm font-semibold tracking-wide text-cyan-100 uppercase">
-              <Activity className="h-5 w-5 text-cyan-200" aria-hidden="true" />
-              Ongoing conditions
-            </p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {currentPatient.conditions.map((c) => (
-                <Badge key={c}>{c}</Badge>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className="flex items-center gap-2 text-sm font-semibold tracking-wide text-cyan-100 uppercase">
-              <TriangleAlert className="h-5 w-5 text-red-300" aria-hidden="true" />
-              Allergies
-            </p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {currentPatient.allergies.map((a) => (
-                <span
-                  key={a}
-                  className="inline-flex items-center rounded-md bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700 ring-1 ring-red-600/25 ring-inset"
-                >
-                  {a}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricTile
-          label="Next appointment"
-          value={upcoming[0] ? formatTime(upcoming[0].time) : '—'}
-          hint={
-            upcoming[0] ? `${upcoming[0].doctor} · ${upcoming[0].department}` : 'Book to get started'
-          }
-          icon={<CalendarClock className="h-5 w-5" aria-hidden="true" />}
-        />
-        <MetricTile
-          label="Active prescriptions"
-          value={currentPatientPrescriptions.length}
-          hint={`${patientMedicines.length} medicines · ${orderableMedicines} to order`}
-          icon={<Stethoscope className="h-5 w-5" aria-hidden="true" />}
-        />
-        <MetricTile
-          label="New reports"
-          value={currentPatientLabs.filter((l) => l.isNew).length}
-          hint="Awaiting your review"
-          severity={currentPatientLabs.some((l) => l.isNew) ? 'abnormal' : 'normal'}
-          icon={<FileText className="h-5 w-5" aria-hidden="true" />}
-        />
-        <MetricTile
-          label="Unread reminders"
-          value={notifications.filter((n) => !n.read).length}
-          hint="Appointments, refills, results"
-          severity={notifications.some((n) => !n.read) ? 'abnormal' : 'normal'}
-          icon={<Bell className="h-5 w-5" aria-hidden="true" />}
-        />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader
-            title="Symptom analysis"
-            description="Mirrors the triage logic used by the Medora WhatsApp bot."
-            icon={<Activity className="h-5 w-5" aria-hidden="true" />}
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="flex min-w-0 flex-col gap-6">
+        <section className="card-shadow relative overflow-hidden rounded-2xl border border-white/10 bg-[#003D38] text-white">
+          <span
+            className="pointer-events-none absolute -top-16 -right-10 h-56 w-56 rounded-full bg-white/10 blur-2xl"
+            aria-hidden="true"
           />
-          <div className="p-5">
-            <label htmlFor="symptoms" className="text-sm font-semibold text-cyan-900">
-              Describe what you are feeling
-            </label>
-            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-              <div className="relative flex-1">
-                <Search
-                  className="pointer-events-none absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-cyan-500"
-                  aria-hidden="true"
-                />
-                <input
-                  id="symptoms"
-                  type="text"
-                  value={symptoms}
-                  onChange={(e) => setSymptoms(e.target.value)}
-                  placeholder="e.g. chest tightness and high blood pressure since morning"
-                  className="h-11 w-full rounded-xl border border-cyan-300 pr-3 pl-10 text-base text-cyan-900 placeholder:text-cyan-600"
-                />
+          <div className="relative flex items-center justify-between gap-6 px-6 py-7 sm:px-8 sm:py-8">
+            <div className="min-w-0">
+              <p className="tabular text-sm font-medium text-cyan-200">
+                {new Date().toLocaleDateString('en-GB', {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long',
+                })}
+              </p>
+              <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">
+                {greetingFor(new Date().getHours())}, {currentPatient.name.split(' ')[0]}
+              </h1>
+              <p className="mt-2 max-w-xl text-sm text-cyan-100 sm:text-base">
+                Here is your health at a glance — appointments, reports, medicines and your care
+                plan in one place.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                <Button variant="secondary">
+                  <CalendarPlus className="h-4 w-4" aria-hidden="true" />
+                  Book appointment
+                </Button>
+                <Button variant="secondary">
+                  <Upload className="h-4 w-4" aria-hidden="true" />
+                  Upload report
+                </Button>
               </div>
-              <Button variant="primary" onClick={() => setAnalysed(true)}>
-                <Sparkles className="h-4 w-4" aria-hidden="true" />
-                Analyse
-              </Button>
             </div>
+          </div>
+        </section>
 
-            {analysed ? (
-              <div
-                className="mt-4 rounded-xl border border-cyan-200 bg-cyan-50/70 p-4"
-                aria-live="polite"
-              >
-                {matches.length === 0 ? (
-                  <p className="text-sm text-cyan-800">
-                    No specific pattern matched. A general medicine consultation is the safest
-                    starting point, or contact the WhatsApp bot for a nurse review.
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <MetricTile
+            label="Next appointment"
+            value={upcoming[0] ? formatTime(upcoming[0].time) : '—'}
+            hint={
+              upcoming[0]
+                ? `${upcoming[0].doctor} · ${upcoming[0].department}`
+                : 'Book to get started'
+            }
+            icon={<CalendarClock className="h-5 w-5" aria-hidden="true" />}
+          />
+          <MetricTile
+            label="Active prescriptions"
+            value={currentPatientPrescriptions.length}
+            hint={`${patientMedicines.length} medicines · ${orderableMedicines} to order`}
+            icon={<Pill className="h-5 w-5" aria-hidden="true" />}
+          />
+          <MetricTile
+            label="New reports"
+            value={currentPatientLabs.filter((l) => l.isNew).length}
+            hint="Awaiting your review"
+            severity={currentPatientLabs.some((l) => l.isNew) ? 'abnormal' : 'normal'}
+            icon={<FileText className="h-5 w-5" aria-hidden="true" />}
+          />
+          <MetricTile
+            label="Unread reminders"
+            value={notifications.filter((n) => !n.read).length}
+            hint="Appointments, refills, results"
+            severity={notifications.some((n) => !n.read) ? 'abnormal' : 'normal'}
+            icon={<Bell className="h-5 w-5" aria-hidden="true" />}
+          />
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card className="flex h-full flex-col">
+            <CardHeader
+              title="Upcoming appointments"
+              description="Your next confirmed visits"
+              icon={<CalendarClock className="h-5 w-5" aria-hidden="true" />}
+            />
+            <div className="flex-1">
+              {upcoming.length === 0 ? (
+                <p className="px-5 py-6 text-sm text-cyan-700">
+                  No upcoming appointments. Book one to get started.
+                </p>
+              ) : (
+                <ul className="divide-y divide-cyan-100">
+                  {upcoming.slice(0, 3).map((a) => {
+                    const isCancelled = cancelledAppointments.includes(a.id)
+                    return (
+                      <li
+                        key={a.id}
+                        className="flex items-start justify-between gap-3 px-5 py-4 transition-colors duration-200 hover:bg-cyan-50/60"
+                      >
+                        <div className="flex min-w-0 items-start gap-3">
+                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-100 text-cyan-700">
+                            <CalendarClock className="h-4 w-4" aria-hidden="true" />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate font-semibold text-cyan-950">{a.doctor}</p>
+                            <p className="text-sm text-cyan-700">
+                              {a.department} · {a.type}
+                            </p>
+                            <p className="text-xs text-cyan-700">{a.reason}</p>
+                            <p className="tabular mt-0.5 text-xs text-cyan-600">
+                              {dayLabel(a.date)} · {formatTime(a.time)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 flex-col items-end gap-2">
+                          {isCancelled ? (
+                            <StatusPill severity="critical">Cancelled</StatusPill>
+                          ) : (
+                            <Badge>{a.status}</Badge>
+                          )}
+                          {isCancelled ? null : (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setCancelledAppointments((prev) =>
+                                  prev.includes(a.id) ? prev : [...prev, a.id],
+                                )
+                              }
+                              className="cursor-pointer text-xs font-semibold text-red-600 hover:underline"
+                            >
+                              Cancel
+                            </button>
+                          )}
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+
+              {completed.length > 0 ? (
+                <div className="border-t border-cyan-100 px-5 py-4">
+                  <p className="text-xs font-semibold tracking-wide text-cyan-700 uppercase">
+                    Recent visits
                   </p>
-                ) : (
-                  <>
-                    <p className="flex items-center gap-2 text-sm font-semibold text-cyan-900">
-                      <Sparkles className="h-4 w-4 text-cyan-600" aria-hidden="true" />
-                      Suggested pathway
-                    </p>
-                    <ul className="mt-3 space-y-2">
-                      {matches.map((m) => (
-                        <li
-                          key={m.department}
-                          className="flex flex-col gap-2 rounded-xl bg-white p-3 ring-1 ring-cyan-200 sm:flex-row sm:items-center sm:justify-between"
-                        >
-                          <div className="flex items-start gap-3">
-                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-100 text-cyan-700">
-                              <Stethoscope className="h-4 w-4" aria-hidden="true" />
-                            </span>
+                  <ul className="mt-2 space-y-2">
+                    {completed.slice(0, 3).map((a) => (
+                      <li
+                        key={a.id}
+                        className="flex items-center justify-between gap-3 rounded-xl border border-cyan-100 px-3 py-2.5"
+                      >
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-50 text-cyan-700 ring-1 ring-cyan-100">
+                            <CalendarClock className="h-4 w-4" aria-hidden="true" />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-cyan-950">
+                              {a.doctor}
+                            </p>
+                            <p className="truncate text-xs text-cyan-700">
+                              {a.department} · {a.reason}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="tabular shrink-0 text-xs text-cyan-600">
+                          {formatDay(a.date)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+            <p className="mt-auto border-t border-cyan-100 px-5 py-3 text-xs text-cyan-700">
+              {upcoming.length} upcoming · {completed.length} completed
+            </p>
+          </Card>
+
+          <Card className="flex h-full flex-col">
+            <CardHeader
+              title="Quick actions"
+              description="Everyday tasks in one tap"
+              icon={<Sparkles className="h-5 w-5" aria-hidden="true" />}
+            />
+            <div className="p-5">
+              <div className="grid grid-cols-2 gap-3">
+                {quickActions.map(({ icon: Icon, label }) => (
+                  <button
+                    key={label}
+                    type="button"
+                    className="flex cursor-pointer items-center gap-3 rounded-xl border border-cyan-200/70 bg-cyan-50/40 px-3 py-3 text-left text-sm font-semibold text-cyan-800 transition-colors duration-200 hover:border-cyan-400 hover:bg-cyan-50"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-cyan-700 ring-1 ring-cyan-100">
+                      <Icon className="h-4 w-4" aria-hidden="true" />
+                    </span>
+                    <span className="min-w-0 leading-snug">{label}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-5 border-t border-cyan-100 pt-4">
+                <label htmlFor="symptoms" className="text-sm font-semibold text-cyan-900">
+                  Symptom check
+                </label>
+                <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                  <div className="relative flex-1">
+                    <Search
+                      className="pointer-events-none absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-cyan-500"
+                      aria-hidden="true"
+                    />
+                    <input
+                      id="symptoms"
+                      type="text"
+                      value={symptoms}
+                      onChange={(e) => setSymptoms(e.target.value)}
+                      placeholder="e.g. chest tightness since morning"
+                      className="h-11 w-full rounded-xl border border-cyan-300 pr-3 pl-10 text-sm text-cyan-900 placeholder:text-cyan-600"
+                    />
+                  </div>
+                  <Button variant="primary" onClick={() => setAnalysed(true)}>
+                    <Sparkles className="h-4 w-4" aria-hidden="true" />
+                    Analyse
+                  </Button>
+                </div>
+
+                {analysed ? (
+                  <div
+                    className="mt-4 rounded-xl border border-cyan-200 bg-cyan-50/70 p-4"
+                    aria-live="polite"
+                  >
+                    {matches.length === 0 ? (
+                      <p className="text-sm text-cyan-800">
+                        No specific pattern matched. A general medicine consultation is the safest
+                        starting point.
+                      </p>
+                    ) : (
+                      <ul className="space-y-2">
+                        {matches.map((m) => (
+                          <li
+                            key={m.department}
+                            className="flex items-start justify-between gap-3 rounded-xl bg-white p-3 ring-1 ring-cyan-200"
+                          >
                             <div>
                               <p className="font-semibold text-cyan-950">{m.department}</p>
                               <p className="text-sm text-cyan-700">{m.note}</p>
                             </div>
-                          </div>
-                          <Button className="shrink-0">Book {m.department}</Button>
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                )}
+                            <Button className="shrink-0">Book</Button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ) : null}
               </div>
-            ) : null}
-          </div>
-        </Card>
-
-        <Card>
-          <CardHeader
-            title="Latest vitals"
-            description={`Recorded by ${vitals?.recordedBy ?? '—'}`}
-            icon={<HeartPulse className="h-5 w-5" aria-hidden="true" />}
-          />
-          <ul className="divide-y divide-cyan-100 px-5">
-            {vitalRows.map(({ icon: Icon, label, value }) => (
-              <li key={label} className="flex items-center justify-between gap-3 py-3.5">
-                <span className="flex items-center gap-3 text-sm text-cyan-700">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-100 text-cyan-700">
-                    <Icon className="h-4 w-4" aria-hidden="true" />
-                  </span>
-                  {label}
-                </span>
-                <span className="tabular font-semibold text-cyan-950">{value}</span>
-              </li>
-            ))}
-          </ul>
-          {vitals ? (
-            <div className="border-t border-cyan-100 px-5 py-3.5">
-              <StatusPill severity={vitals.severity}>{vitalsLabels[vitals.severity]}</StatusPill>
             </div>
-          ) : null}
-        </Card>
-      </div>
+          </Card>
+        </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader
-            title="My appointments"
-            description="Book, reschedule or cancel"
-            icon={<CalendarClock className="h-5 w-5" aria-hidden="true" />}
-          />
-          <DataTable
-            caption="Your scheduled and past appointments"
-            rows={currentPatientAppointments}
-            rowKey={(a) => a.id}
-            emptyMessage="No appointments yet."
-            columns={[
-              {
-                key: 'date',
-                header: 'Date & time',
-                primary: true,
-                render: (a) => (
-                  <span>
-                    <span className="block font-semibold">{a.date}</span>
-                    <span className="tabular text-cyan-700">{a.time}</span>
-                  </span>
-                ),
-              },
-              {
-                key: 'doctor',
-                header: 'Doctor',
-                render: (a) => (
-                  <span>
-                    <span className="block">{a.doctor}</span>
-                    <span className="text-cyan-700">{a.department}</span>
-                  </span>
-                ),
-              },
-              {
-                key: 'status',
-                header: 'Status',
-                render: (a) => {
-                  const isCancelled = cancelledAppointments.includes(a.id)
-                  return isCancelled ? (
-                    <StatusPill severity="critical">Cancelled</StatusPill>
-                  ) : (
-                    <Badge>{a.status}</Badge>
-                  )
-                },
-              },
-              {
-                key: 'action',
-                header: 'Action',
-                align: 'right',
-                render: (a) =>
-                  a.status === 'completed' ? (
-                    <span className="text-sm text-cyan-600">Closed</span>
-                  ) : cancelledAppointments.includes(a.id) ? (
-                    <span className="text-sm text-cyan-600">—</span>
-                  ) : (
-                    <span className="flex justify-end gap-2">
-                      <Button
-                        onClick={() =>
-                          setCancelledAppointments((prev) =>
-                            prev.includes(a.id) ? prev : [...prev, a.id],
-                          )
-                        }
-                      >
-                        Cancel
-                      </Button>
-                    </span>
-                  ),
-              },
-            ]}
-          />
-          <p className="border-t border-cyan-100 px-5 py-3 text-xs text-cyan-700">
-            {upcoming.length} upcoming · {completed.length} completed
-          </p>
-        </Card>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card className="flex h-full flex-col">
+            <CardHeader
+              title="Health summary"
+              description={currentPatientDiet.goal}
+              icon={<Activity className="h-5 w-5" aria-hidden="true" />}
+            />
+            <div className="p-5">
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusPill severity={vitals?.severity ?? 'normal'}>
+                  {vitalsLabels[vitals?.severity ?? 'normal']}
+                </StatusPill>
+                <span className="text-xs text-cyan-700">
+                  Latest vitals by {vitals?.recordedBy ?? '—'}
+                </span>
+              </div>
 
-        <Card>
-          <CardHeader
-            title="Report history"
-            description="Diagnostics uploaded by the laboratory"
-            icon={<FileText className="h-5 w-5" aria-hidden="true" />}
-          />
-          <DataTable
-            caption="Your diagnostic reports"
-            rows={currentPatientLabs}
-            rowKey={(l) => l.id}
-            columns={[
-              {
-                key: 'test',
-                header: 'Test',
-                primary: true,
-                render: (l) => (
-                  <span>
-                    <span className="block font-semibold">{l.testName}</span>
-                    <span className="text-cyan-700">{l.category}</span>
-                  </span>
-                ),
-              },
-              {
-                key: 'result',
-                header: 'Result',
-                render: (l) =>
-                  l.result ? (
-                    <span className="text-cyan-800">{l.result}</span>
-                  ) : (
-                    <StatusPill severity="abnormal">{l.status}</StatusPill>
-                  ),
-              },
-              {
-                key: 'flag',
-                header: 'New',
-                render: (l) => (l.isNew ? <Badge tone="brand">New</Badge> : '—'),
-              },
-            ]}
-          />
-        </Card>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader
-            title="Prescriptions & medicine orders"
-            description="One-click ordering with home delivery"
-            icon={<Pill className="h-5 w-5" aria-hidden="true" />}
-          />
-          <ul className="divide-y divide-cyan-100">
-            {currentPatientPrescriptions.flatMap((p) =>
-              p.medicines.map((m) => (
-                <li
-                  key={m.id}
-                  className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 transition-colors duration-200 hover:bg-cyan-50/60"
-                >
-                  <div className="flex min-w-0 items-start gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-100 text-cyan-700">
-                      <Pill className="h-4 w-4" aria-hidden="true" />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="font-semibold text-cyan-950">{m.name}</p>
-                      <p className="text-sm text-cyan-700">
-                        {m.dosage} · {m.frequency} · {m.durationDays} days
-                      </p>
-                      <p className="text-xs text-cyan-600">Prescribed by {p.doctor}</p>
-                    </div>
-                  </div>
-                  {orderedMedicines.includes(m.id) ? (
-                    <StatusPill severity="normal">Order placed</StatusPill>
-                  ) : (
-                    <Button
-                      variant="primary"
-                      onClick={() => setOrderedMedicines((prev) => [...prev, m.id])}
-                    >
-                      Order now
-                    </Button>
-                  )}
-                </li>
-              )),
-            )}
-          </ul>
-        </Card>
-
-        <Card>
-          <CardHeader
-            title="Book a lab test"
-            description="Live prices and turnaround times"
-            icon={<FlaskConical className="h-5 w-5" aria-hidden="true" />}
-          />
-          <ul className="divide-y divide-cyan-100">
-            {testsForBooking.slice(0, 5).map((t) => (
-              <li
-                key={t.name}
-                className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 transition-colors duration-200 hover:bg-cyan-50/60"
-              >
-                <div className="flex min-w-0 items-start gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-100 text-cyan-700">
-                    <FlaskConical className="h-4 w-4" aria-hidden="true" />
-                  </span>
-                  <div>
-                    <p className="font-semibold text-cyan-950">{t.name}</p>
-                    <p className="text-sm text-cyan-700">
-                      {t.category} · {t.turnaround}
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {vitalRows.map(({ icon: Icon, label, value }) => (
+                  <div
+                    key={label}
+                    className="rounded-xl border border-cyan-100 bg-cyan-50/50 px-3 py-2.5"
+                  >
+                    <p className="flex items-center gap-1.5 text-xs font-medium text-cyan-600">
+                      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                      {label}
                     </p>
+                    <p className="tabular mt-1 font-semibold text-cyan-950">{value}</p>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="tabular font-semibold text-cyan-900">GH₵ {t.price}</span>
-                  {bookedTests.includes(t.name) ? (
-                    <StatusPill severity="normal">Booked</StatusPill>
-                  ) : (
-                    <Button onClick={() => setBookedTests((prev) => [...prev, t.name])}>
-                      Book slot
-                    </Button>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </Card>
+                ))}
+              </div>
+
+              <div className="mt-5">
+                <ProgressBar
+                  value={7.4}
+                  max={10}
+                  label="HbA1c against the 10% ceiling"
+                  severity="abnormal"
+                />
+              </div>
+            </div>
+
+            <div className="border-t border-cyan-100 px-5 pt-4">
+              <p className="text-sm font-semibold text-cyan-900">Fasting glucose trend</p>
+              <p className="text-xs text-cyan-700">Across your last three visits</p>
+            </div>
+            <LineChart
+              title="Fasting glucose in mg/dL over the last three visits"
+              unit=" mg/dL"
+              data={currentPatientGlucose.map((reading, index) => ({
+                label: `Visit ${index + 1}`,
+                value: reading.value,
+              }))}
+            />
+          </Card>
+
+          <Card className="flex h-full flex-col">
+            <CardHeader
+              title="Recent records"
+              description="Latest reports and prescriptions"
+              icon={<ClipboardList className="h-5 w-5" aria-hidden="true" />}
+            />
+            <div className="flex-1 space-y-5 p-5">
+              <div>
+                <p className="text-xs font-semibold tracking-wide text-cyan-700 uppercase">
+                  Reports
+                </p>
+                <ul className="mt-2 space-y-2">
+                  {currentPatientLabs.slice(0, 3).map((l) => (
+                    <li
+                      key={l.id}
+                      className="flex items-center justify-between gap-3 rounded-xl border border-cyan-100 px-3 py-2.5"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-cyan-950">
+                          {l.testName}
+                        </p>
+                        <p className="text-xs text-cyan-700">{l.category}</p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        {l.isNew ? <Badge tone="brand">New</Badge> : null}
+                        {l.result ? (
+                          <span className="max-w-40 truncate text-xs text-cyan-800">
+                            {l.result}
+                          </span>
+                        ) : (
+                          <StatusPill severity="abnormal">{l.status}</StatusPill>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold tracking-wide text-cyan-700 uppercase">
+                  Prescriptions
+                </p>
+                <ul className="mt-2 space-y-2">
+                  {currentPatientPrescriptions
+                    .flatMap((p) => p.medicines.map((m) => ({ ...m, doctor: p.doctor })))
+                    .slice(0, 3)
+                    .map((m) => (
+                      <li
+                        key={m.id}
+                        className="flex items-center justify-between gap-3 rounded-xl border border-cyan-100 px-3 py-2.5"
+                      >
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-100 text-cyan-700">
+                            <Pill className="h-4 w-4" aria-hidden="true" />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-cyan-950">
+                              {m.name}
+                            </p>
+                            <p className="text-xs text-cyan-700">
+                              {m.dosage} · {m.frequency}
+                            </p>
+                          </div>
+                        </div>
+                        {m.ordered ? (
+                          <StatusPill severity="normal">Ordered</StatusPill>
+                        ) : (
+                          <Badge>Pending</Badge>
+                        )}
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="mt-auto flex cursor-pointer items-center justify-center gap-2 border-t border-cyan-100 px-5 py-3 text-sm font-semibold text-cyan-700 transition-colors duration-200 hover:bg-cyan-50"
+            >
+              <ClipboardList className="h-4 w-4" aria-hidden="true" />
+              View full record history
+            </button>
+          </Card>
+        </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <aside className="flex min-w-0 flex-col gap-6">
         <Card>
-          <CardHeader
-            title="Diet plan"
-            description={currentPatientDiet.goal}
-            icon={<ChefHat className="h-5 w-5" aria-hidden="true" />}
-            action={
-              <span className="text-sm font-semibold text-cyan-800">
-                {currentPatientDiet.dailyCalories} kcal/day
+          <div className="relative overflow-hidden bg-[#003D38] px-5 py-6 text-white">
+            <span
+              className="pointer-events-none absolute -top-14 -right-10 h-40 w-40 rounded-full bg-white/10 blur-2xl"
+              aria-hidden="true"
+            />
+            <div className="relative flex items-center gap-4">
+              <span className="shrink-0 rounded-full ring-4 ring-white/20">
+                <Avatar
+                  initials={patientInitials(currentPatient.name)}
+                  name={currentPatient.name}
+                  size="lg"
+                />
               </span>
-            }
-          />
-          <div className="p-5">
-            <ul className="space-y-3">
-              {currentPatientDiet.entries.map((e) => (
-                <li
-                  key={e.meal}
-                  className="flex flex-wrap items-center justify-between gap-2 border-b border-cyan-100 pb-3 last:border-0 last:pb-0"
-                >
-                  <div>
-                    <p className="text-sm font-semibold text-cyan-900">{e.meal}</p>
-                    <p className="text-sm text-cyan-700">{e.items}</p>
-                  </div>
-                  <span className="tabular text-sm font-medium text-cyan-900">
-                    {e.calories} kcal
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-5 flex flex-wrap gap-2">
-              {currentPatientDiet.restrictions.map((r) => (
-                <span
-                  key={r}
-                  className="inline-flex items-center rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-900 ring-1 ring-amber-600/25 ring-inset"
-                >
-                  {r}
+              <div className="min-w-0">
+                <p className="truncate text-lg font-bold text-white">{currentPatient.name}</p>
+                <p className="tabular text-xs text-cyan-200">{currentPatient.mrn}</p>
+                <span className="mt-1.5 inline-flex items-center gap-1.5 rounded-md bg-white px-2 py-0.5 text-xs font-semibold text-cyan-800 ring-1 ring-cyan-200">
+                  <UserRound className="h-3.5 w-3.5" aria-hidden="true" />
+                  {currentPatient.age} yrs · {currentPatient.sex}
                 </span>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-4 p-5">
+            <dl className="grid grid-cols-2 gap-3">
+              {profileTiles.map(({ icon: Icon, label, value }) => (
+                <div
+                  key={label}
+                  className="rounded-xl bg-cyan-50 px-3 py-2.5 ring-1 ring-cyan-100"
+                >
+                  <dt className="flex items-center gap-1.5 text-xs font-medium text-cyan-600">
+                    <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                    {label}
+                  </dt>
+                  <dd className="tabular mt-1 font-semibold text-cyan-950 capitalize">{value}</dd>
+                </div>
               ))}
+              <div className="col-span-2 rounded-xl bg-cyan-50 px-3 py-2.5 ring-1 ring-cyan-100">
+                <dt className="flex items-center gap-1.5 text-xs font-medium text-cyan-600">
+                  <Phone className="h-3.5 w-3.5" aria-hidden="true" />
+                  Phone
+                </dt>
+                <dd className="tabular mt-1 font-semibold text-cyan-950">
+                  {currentPatient.phone}
+                </dd>
+              </div>
+            </dl>
+
+            <div>
+              <p className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-cyan-700 uppercase">
+                <Activity className="h-3.5 w-3.5" aria-hidden="true" />
+                Conditions
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {currentPatient.conditions.map((c) => (
+                  <Badge key={c}>{c}</Badge>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-cyan-700 uppercase">
+                <TriangleAlert className="h-3.5 w-3.5 text-red-500" aria-hidden="true" />
+                Allergies
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {currentPatient.allergies.map((a) => (
+                  <span
+                    key={a}
+                    className="inline-flex items-center rounded-md bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700 ring-1 ring-red-600/25 ring-inset"
+                  >
+                    {a}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </Card>
 
         <Card>
           <CardHeader
-            title="Reminders & notifications"
+            title="Upcoming reminders"
             icon={<BellRing className="h-5 w-5" aria-hidden="true" />}
             action={
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-cyan-800">
+              <label className="flex cursor-pointer items-center gap-2 text-xs text-cyan-800">
                 <input
                   type="checkbox"
                   checked={unreadOnly}
                   onChange={(e) => setUnreadOnly(e.target.checked)}
                   className="h-4 w-4 cursor-pointer rounded border-cyan-400 accent-cyan-700"
                 />
-                Unread only
+                Unread
               </label>
             }
           />
-          <ul className="divide-y divide-cyan-100">
-            {visibleNotifications.map((n) => (
-              <li
-                key={n.id}
-                className="flex items-start gap-3 px-5 py-4 transition-colors duration-200 hover:bg-cyan-50/60"
-              >
-                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-100 text-cyan-700">
-                  <HeartPulse className="h-4 w-4" aria-hidden="true" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-cyan-950">{n.title}</p>
-                  <p className="text-sm text-cyan-700">{n.body}</p>
-                  <p className="tabular mt-1 text-xs text-cyan-700">
-                    {new Date(n.at).toLocaleString()}
-                  </p>
-                </div>
-                {n.read ? null : <StatusPill severity="abnormal">New</StatusPill>}
-              </li>
-            ))}
-          </ul>
+          {visibleNotifications.length === 0 ? (
+            <p className="px-5 py-6 text-sm text-cyan-700">You are all caught up.</p>
+          ) : (
+            <ul className="divide-y divide-cyan-100">
+              {visibleNotifications.slice(0, 4).map((n) => (
+                <li key={n.id} className="flex items-start gap-3 px-5 py-3.5">
+                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-100 text-cyan-700">
+                    <Bell className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-cyan-950">{n.title}</p>
+                    <p className="text-xs text-cyan-700">{n.body}</p>
+                    <p className="tabular mt-1 text-[11px] text-cyan-600">
+                      {new Date(n.at).toLocaleString()}
+                    </p>
+                  </div>
+                  {n.read ? null : (
+                    <span
+                      className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-red-500"
+                      aria-label="Unread"
+                    />
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
-      </div>
 
-      <Card>
-        <CardHeader
-          title="Glucose trend"
-          description="Fasting glucose readings across your last three visits"
-          icon={<Activity className="h-5 w-5" aria-hidden="true" />}
-        />
-        <div className="p-4">
-          <div className="overflow-hidden rounded-2xl border border-cyan-200/70 bg-cyan-50/70">
-            <BarChart
-              title="Fasting glucose in mg/dL over the last three visits"
-              unit=""
-              data={currentPatientGlucose.map((reading, index) => ({
-                label: `Visit ${index + 1}`,
-                value: reading.value,
-              }))}
-            />
-            <div className="border-t border-cyan-200/70 px-5 py-4">
-              <ProgressBar
-                value={7.4}
-                max={10}
-                label="HbA1c against the 10% ceiling"
-                severity="abnormal"
-              />
+        <Card className="flex flex-1 flex-col bg-gradient-to-br from-emerald-50 to-white">
+          <CardHeader
+            title="Health tip"
+            icon={<Lightbulb className="h-5 w-5" aria-hidden="true" />}
+            action={
+              <span className="inline-flex items-center rounded-md bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
+                {healthTips[0].category}
+              </span>
+            }
+          />
+          <div className="flex flex-1 flex-col gap-4 p-5">
+            <div className="rounded-xl bg-white p-4 ring-1 ring-emerald-100">
+              <p className="font-semibold text-cyan-950">{healthTips[0].title}</p>
+              <p className="mt-1 text-sm text-cyan-700">{healthTips[0].body}</p>
+              <Button className="mt-4">
+                <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                Ask the care bot
+              </Button>
             </div>
+            <ul className="mt-auto space-y-1.5">
+              {healthTips.slice(1).map((tip) => (
+                <li key={tip.title} className="flex items-start gap-2.5 rounded-lg px-1 py-1.5">
+                  <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-cyan-900">{tip.title}</p>
+                    <p className="text-xs text-cyan-700">{tip.body}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
-        </div>
-      </Card>
-    </>
+        </Card>
+      </aside>
+    </div>
   )
 }

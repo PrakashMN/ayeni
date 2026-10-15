@@ -18,7 +18,6 @@ import {
   CardHeader,
   MetricTile,
   PageHeader,
-  ProgressBar,
   StatusPill,
   type Tone,
 } from '../components/ui/primitives'
@@ -27,7 +26,6 @@ import { LineChart, PieChart } from '../components/ui/Chart'
 import {
   appointments,
   auditEvents,
-  getPatientName,
   labTests,
   patients,
   prescriptions,
@@ -52,6 +50,15 @@ const bookingSources = [
   { source: 'whatsapp', color: 'var(--color-emerald-500)' },
   { source: 'walk-in', color: 'var(--color-amber-500)' },
 ] as const
+
+const roleColors: Record<string, string> = {
+  admin: 'var(--color-cyan-700)',
+  doctor: 'var(--color-cyan-500)',
+  staff: 'var(--color-emerald-500)',
+  lab: 'var(--color-amber-500)',
+  pharmacy: 'var(--color-cyan-400)',
+  receptionist: 'var(--color-cyan-300)',
+}
 
 export function AdminPanel() {
   const [roleFilter, setRoleFilter] = useState<'all' | User['role']>('all')
@@ -218,17 +225,16 @@ export function AdminPanel() {
               description="Access distribution"
               icon={<ChartColumn className="h-5 w-5" aria-hidden="true" />}
             />
-            <div className="space-y-4 p-5">
-              {Object.entries(userRoleCounts).map(([role, count]) => (
-                <ProgressBar
-                  key={role}
-                  value={count}
-                  max={users.length}
-                  label={role}
-                  severity={role === 'admin' ? 'abnormal' : 'normal'}
-                />
-              ))}
-            </div>
+            <PieChart
+              compact
+              title="Platform users by role"
+              unit="users"
+              segments={Object.entries(userRoleCounts).map(([role, count]) => ({
+                label: humanize(role),
+                value: count,
+                color: roleColors[role] ?? 'var(--color-cyan-400)',
+              }))}
+            />
           </Card>
 
           <Card>
@@ -310,11 +316,6 @@ export function AdminPanel() {
               header: 'Records',
               align: 'right',
               render: (r) => <span className="tabular">{r.count}</span>,
-            },
-            {
-              key: 'sample',
-              header: 'Sample',
-              render: (r) => (r.module === 'Patients' ? getPatientName(patients[0].id) : '—'),
             },
           ]}
         />

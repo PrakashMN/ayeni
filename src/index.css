@@ -3,19 +3,19 @@
 @theme {
   --font-sans: 'Figtree', ui-sans-serif, system-ui, 'Segoe UI', Roboto, sans-serif;
 
-  /* Medora brand palette. The cyan scale is remapped to the clinical
-     navy → primary → accent ramp so every existing utility reskins. */
-  --color-cyan-50: #f5f9fd;
-  --color-cyan-100: #eaf3fa;
-  --color-cyan-200: #dce7f3;
-  --color-cyan-300: #c0dbeb;
-  --color-cyan-400: #6ec6e0;
-  --color-cyan-500: #22b8cf;
-  --color-cyan-600: #1497b4;
-  --color-cyan-700: #087fa8;
-  --color-cyan-800: #0a6488;
-  --color-cyan-900: #10294f;
-  --color-cyan-950: #0b2344;
+  /* Medora brand palette. The cyan scale is remapped to a ramp built
+     around the brand green #214439, so every existing utility reskins. */
+  --color-cyan-50: #f3f7f5;
+  --color-cyan-100: #e6efeb;
+  --color-cyan-200: #cde0d8;
+  --color-cyan-300: #a8c6ba;
+  --color-cyan-400: #7ba798;
+  --color-cyan-500: #4f8270;
+  --color-cyan-600: #326152;
+  --color-cyan-700: #214439;
+  --color-cyan-800: #1a382f;
+  --color-cyan-900: #142c25;
+  --color-cyan-950: #0c1e18;
 
   /* Clinical status semantics. Used for vitals, lab flags and triage. */
   --color-status-normal: var(--color-emerald-600);
@@ -32,7 +32,7 @@
 
   body {
     margin: 0;
-    background-color: var(--color-cyan-50);
+    background-color: #f8fafc;
     color: var(--color-cyan-950);
     font-family: var(--font-sans);
     line-height: 1.5;
@@ -52,14 +52,14 @@
   /* Soft clinical glow behind the dashboard canvas. */
   .app-canvas {
     background-image:
-      radial-gradient(1100px 420px at 100% -10%, rgba(34, 184, 207, 0.12), transparent 60%),
-      radial-gradient(900px 380px at -5% 0%, rgba(8, 127, 168, 0.08), transparent 55%);
+      radial-gradient(1100px 420px at 100% -10%, rgba(33, 68, 57, 0.12), transparent 60%),
+      radial-gradient(900px 380px at -5% 0%, rgba(33, 68, 57, 0.08), transparent 55%);
   }
 
   .card-shadow {
     box-shadow:
-      0 1px 2px rgba(11, 35, 68, 0.04),
-      0 12px 32px -16px rgba(8, 127, 168, 0.18);
+      0 1px 2px rgba(12, 30, 24, 0.04),
+      0 12px 32px -16px rgba(33, 68, 57, 0.18);
   }
 
   /* Numeric columns in clinical tables must align. */

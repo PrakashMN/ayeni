@@ -1,20 +1,49 @@
-import { Bell, ChevronDown, HeartPulse, Menu, Search, X } from 'lucide-react'
+import { Bell, ChevronDown, HeartPulse, LogOut, Menu, Search, X } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { NavLink, useLocation } from 'react-router'
+import { NavLink, useLocation, useNavigate } from 'react-router'
+import { users } from '../../data/api'
 import { navItems } from './nav'
 
-function Brand({ tone = 'light' }: { tone?: 'light' | 'dark' }) {
-  const dark = tone === 'dark'
+function initialsOf(name: string): string {
+  return name
+    .replace(/^Dr\.\s*/, '')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('')
+}
+
+const roleToUserRole: Record<string, string> = {
+  Patient: 'patient',
+  Clinician: 'doctor',
+  Nursing: 'staff',
+  Diagnostics: 'lab',
+  Pharmacy: 'pharmacy',
+  'Front desk': 'receptionist',
+  Administration: 'admin',
+}
+
+function currentUser(role: string) {
+  const match = roleToUserRole[role]
+  return (
+    users.find((u) => u.role === match && u.status === 'active') ??
+    users.find((u) => u.status === 'active') ??
+    users[0]
+  )
+}
+
+function Brand({ onDark = false }: { onDark?: boolean }) {
   return (
     <div className="flex items-center gap-2.5">
-      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-700 text-white shadow-lg shadow-cyan-900/40">
+      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-800 text-white shadow-lg shadow-cyan-900/20">
         <HeartPulse className="h-5 w-5" aria-hidden="true" />
       </span>
       <span>
-        <span className={`block text-sm font-bold ${dark ? 'text-cyan-950' : 'text-white'}`}>
+        <span className={`block text-sm font-bold ${onDark ? 'text-white' : 'text-cyan-950'}`}>
           Medora EHR
         </span>
-        <span className={`block text-xs ${dark ? 'text-cyan-600' : 'text-cyan-300'}`}>
+        <span className={`block text-xs ${onDark ? 'text-cyan-200' : 'text-cyan-800'}`}>
           Better Care. Together.
         </span>
       </span>
@@ -35,7 +64,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
                 `group flex min-h-11 cursor-pointer items-start gap-3.5 rounded-xl px-3.5 py-3 transition-all duration-200 ${
                   isActive
                     ? 'bg-gradient-to-r from-cyan-600 to-cyan-500 text-white shadow-lg shadow-cyan-900/30'
-                    : 'text-cyan-200 hover:bg-white/10 hover:text-white'
+                    : 'text-white hover:bg-white/10 hover:text-white'
                 }`
               }
             >
@@ -43,7 +72,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
                 <>
                   <item.icon
                     className={`mt-0.5 h-5 w-5 shrink-0 ${
-                      isActive ? 'text-white' : 'text-cyan-400 group-hover:text-cyan-200'
+                      isActive ? 'text-white' : 'text-cyan-200 group-hover:text-white'
                     }`}
                     aria-hidden="true"
                   />
@@ -51,7 +80,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
                     <span className="block text-sm font-semibold leading-snug">{item.label}</span>
                     <span
                       className={`mt-0.5 block truncate text-xs leading-snug ${
-                        isActive ? 'text-white/80' : 'text-cyan-400'
+                        isActive ? 'text-white/90' : 'text-cyan-300'
                       }`}
                     >
                       {item.description}
@@ -68,13 +97,22 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 function SidebarFooter() {
+  const navigate = useNavigate()
   return (
-    <div className="border-t border-white/10 px-5 py-5">
-      <div className="flex items-center gap-2 text-cyan-300">
+    <div className="border-t border-white/15 px-5 py-5">
+      <div className="flex items-center gap-2 text-cyan-200">
         <HeartPulse className="h-4 w-4" aria-hidden="true" />
         <span className="text-xs font-semibold text-white">Medora EHR</span>
       </div>
-      <p className="mt-1.5 text-xs leading-relaxed text-cyan-400">Secure • Compliant • Patient Centred</p>
+      <p className="mt-1.5 text-xs leading-relaxed font-medium text-cyan-300">Secure • Compliant • Patient Centred</p>
+      <button
+        type="button"
+        onClick={() => navigate('/')}
+        className="mt-3 flex min-h-11 w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 text-sm font-semibold text-cyan-100 transition-colors duration-200 hover:bg-white/10 hover:text-white"
+      >
+        <LogOut className="h-4 w-4" aria-hidden="true" />
+        Log out
+      </button>
     </div>
   )
 }
@@ -129,8 +167,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [drawerOpen])
 
   const active = navItems.find((i) => i.to === location.pathname)
-  const role = active?.role ?? 'Guest'
-  const initials = role.slice(0, 2).toUpperCase()
+  const role = active?.role ?? 'Overview'
+  const user = currentUser(role)
+  const initials = initialsOf(user.name)
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[290px_1fr]">
@@ -138,9 +177,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         Skip to main content
       </a>
 
-      <aside className="sticky top-0 hidden h-screen flex-col border-r border-white/5 bg-cyan-950 lg:flex">
-        <div className="flex h-16 items-center border-b border-white/10 px-4">
-          <Brand />
+      <aside className="sticky top-0 hidden h-screen flex-col border-r border-white/10 bg-[#003D38] lg:flex">
+        <div className="flex h-16 items-center border-b border-white/15 px-4">
+          <Brand onDark />
         </div>
         <NavList />
         <SidebarFooter />
@@ -160,15 +199,15 @@ export function AppShell({ children }: { children: ReactNode }) {
             role="dialog"
             aria-modal="true"
             aria-label="Navigation menu"
-            className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col bg-cyan-950 shadow-2xl"
+            className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col bg-[#003D38] shadow-2xl"
           >
-            <div className="flex h-16 items-center justify-between border-b border-white/10 px-4">
-              <Brand />
+            <div className="flex h-16 items-center justify-between border-b border-white/15 px-4">
+              <Brand onDark />
               <button
                 type="button"
                 onClick={() => setDrawerOpen(false)}
                 aria-label="Close navigation menu"
-                className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl text-cyan-200 transition-colors duration-200 hover:bg-white/10"
+                className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl text-cyan-100 transition-colors duration-200 hover:bg-white/10"
               >
                 <X className="h-5 w-5" aria-hidden="true" />
               </button>
@@ -180,8 +219,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       ) : null}
 
       <div className="flex min-w-0 flex-col">
-        <header className="sticky top-0 z-30 border-b border-cyan-200/70 bg-white/85 backdrop-blur">
-          <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
+        <header className="sticky top-0 z-30 border-b border-cyan-200/70 bg-white/85 shadow-sm shadow-cyan-900/5 backdrop-blur">
+          <div className="flex h-18 items-center gap-3 px-4 sm:px-6 lg:px-8">
             <button
               type="button"
               onClick={() => setDrawerOpen(true)}
@@ -194,20 +233,27 @@ export function AppShell({ children }: { children: ReactNode }) {
             </button>
 
             <div className="lg:hidden">
-              <Brand tone="dark" />
+              <Brand />
             </div>
 
-            <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            <div className="hidden min-w-0 flex-col justify-center lg:flex">
+              <span className="text-xs font-medium text-cyan-600">Dashboards</span>
+              <span className="truncate text-lg leading-tight font-bold tracking-tight text-cyan-950">
+                {role}
+              </span>
+            </div>
+
+            <div className="ml-auto flex items-center gap-2.5 sm:gap-4">
               <label className="relative hidden md:block">
                 <span className="sr-only">Search patients, reports and orders</span>
                 <Search
-                  className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-cyan-500"
+                  className="pointer-events-none absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-cyan-500"
                   aria-hidden="true"
                 />
                 <input
                   type="search"
                   placeholder="Search patients, reports, appointments…"
-                  className="h-11 w-72 rounded-xl border border-cyan-200 bg-cyan-50/60 pr-3 pl-10 text-sm text-cyan-900 placeholder:text-cyan-500 focus:border-cyan-500 focus:bg-white"
+                  className="h-11 w-80 rounded-xl border border-cyan-200 bg-cyan-50/60 pr-4 pl-10 text-sm text-cyan-900 shadow-inner shadow-cyan-900/5 placeholder:text-cyan-500 focus:border-cyan-500 focus:bg-white focus:ring-2 focus:ring-cyan-100"
                 />
               </label>
 
@@ -225,14 +271,16 @@ export function AppShell({ children }: { children: ReactNode }) {
 
               <button
                 type="button"
-                className="flex cursor-pointer items-center gap-2 rounded-xl px-1.5 py-1.5 transition-colors duration-200 hover:bg-cyan-100"
+                className="flex cursor-pointer items-center gap-2.5 rounded-xl px-2 py-2 transition-colors duration-200 hover:bg-cyan-100"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-cyan-600 to-cyan-500 text-xs font-bold text-white">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-cyan-600 to-cyan-500 text-sm font-bold text-white ring-2 ring-cyan-100">
                   {initials}
                 </span>
                 <span className="hidden text-left sm:block">
-                  <span className="block text-xs text-cyan-600">Signed in as</span>
-                  <span className="block text-sm font-semibold text-cyan-950">{role}</span>
+                  <span className="block text-xs leading-tight text-cyan-600">Signed in as</span>
+                  <span className="mt-0.5 block text-sm leading-tight font-semibold text-cyan-950">
+                    {user.name}
+                  </span>
                 </span>
                 <ChevronDown className="h-4 w-4 text-cyan-600" aria-hidden="true" />
               </button>

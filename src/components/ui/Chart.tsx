@@ -11,12 +11,46 @@ export function BarChart({
   data,
   title,
   unit = '',
+  horizontal = false,
 }: {
   data: BarDatum[]
   title: string
   unit?: string
+  horizontal?: boolean
 }) {
   const max = Math.max(...data.map((d) => d.value), 1)
+
+  if (horizontal) {
+    return (
+      <figure className="px-5 py-5">
+        <figcaption className="sr-only">{title}</figcaption>
+        <ul className="flex flex-col gap-3" role="img" aria-label={title}>
+          {data.map((d) => {
+            const width = d.value === 0 ? 0 : Math.max(Math.round((d.value / max) * 100), 5)
+            return (
+              <li
+                key={d.label}
+                className="grid items-center gap-3"
+                style={{ gridTemplateColumns: 'minmax(0, 9rem) 1fr auto' }}
+              >
+                <span className="truncate text-xs font-medium text-cyan-800">{d.label}</span>
+                <div className="h-6 overflow-hidden rounded-md bg-cyan-100">
+                  <div
+                    className={`h-full rounded-md bg-gradient-to-r ${barGradient}`}
+                    style={{ width: `${width}%` }}
+                  />
+                </div>
+                <span className="tabular text-sm font-semibold text-cyan-800">
+                  {d.value}
+                  {unit}
+                </span>
+              </li>
+            )
+          })}
+        </ul>
+      </figure>
+    )
+  }
 
   return (
     <figure className="px-5 py-5">
@@ -55,10 +89,12 @@ export function PieChart({
   segments,
   title,
   unit = '',
+  compact = false,
 }: {
   segments: PieSegment[]
   title: string
   unit?: string
+  compact?: boolean
 }) {
   const [active, setActive] = useState<number | null>(null)
   const total = segments.reduce((sum, s) => sum + s.value, 0)
@@ -80,10 +116,10 @@ export function PieChart({
   const focused = active === null ? null : arcs[active]
 
   return (
-    <figure className="px-5 py-5">
+    <figure className={compact ? 'px-4 py-4' : 'px-5 py-5'}>
       <figcaption className="sr-only">{title}</figcaption>
-      <div className="flex flex-col items-center gap-6">
-        <div className="relative h-48 w-48 shrink-0">
+      <div className={`flex flex-col items-center ${compact ? 'gap-3' : 'gap-6'}`}>
+        <div className={`relative ${compact ? 'h-36 w-36' : 'h-48 w-48'} shrink-0`}>
           <svg
             viewBox="0 0 100 100"
             className="h-full w-full"
@@ -133,7 +169,7 @@ export function PieChart({
             </span>
           </div>
         </div>
-        <ul className="flex w-full max-w-xs flex-col gap-1">
+        <ul className={`flex w-full max-w-xs flex-col ${compact ? 'gap-0.5' : 'gap-1'}`}>
           {arcs.map((a) => (
             <li key={a.label}>
               <button
@@ -142,9 +178,9 @@ export function PieChart({
                 onMouseLeave={() => setActive(null)}
                 onFocus={() => setActive(a.index)}
                 onBlur={() => setActive(null)}
-                className={`flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-sm text-cyan-800 transition-colors duration-200 ${
+                className={`flex w-full items-center gap-2.5 rounded-lg px-2 text-left text-sm text-cyan-800 transition-colors duration-200 ${
                   active === a.index ? 'bg-cyan-50' : ''
-                }`}
+                } ${compact ? 'py-1' : 'py-1.5'}`}
               >
                 <span
                   className="h-2.5 w-2.5 shrink-0 rounded-full"
@@ -168,10 +204,12 @@ export function LineChart({
   data,
   title,
   unit = '',
+  heightClass = 'h-52',
 }: {
   data: BarDatum[]
   title: string
   unit?: string
+  heightClass?: string
 }) {
   const [active, setActive] = useState<number | null>(null)
   const gradientId = useId().replace(/:/g, '')
@@ -196,7 +234,7 @@ export function LineChart({
   return (
     <figure className="px-5 py-5">
       <figcaption className="sr-only">{title}</figcaption>
-      <div className="relative mx-2 mb-6 h-52">
+      <div className={`relative mx-2 mb-6 ${heightClass}`}>
         <svg
           viewBox="0 0 100 100"
           preserveAspectRatio="none"
