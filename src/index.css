@@ -1,65 +1,126 @@
 @import 'tailwindcss';
 
 @theme {
-  --font-sans: 'Figtree', ui-sans-serif, system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Figtree', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 
-  /* Medora brand palette. The cyan scale is remapped to a ramp built
-     around the brand green #214439, so every existing utility reskins. */
-  --color-cyan-50: #f3f7f5;
-  --color-cyan-100: #e6efeb;
-  --color-cyan-200: #cde0d8;
-  --color-cyan-300: #a8c6ba;
-  --color-cyan-400: #7ba798;
-  --color-cyan-500: #4f8270;
-  --color-cyan-600: #326152;
-  --color-cyan-700: #214439;
-  --color-cyan-800: #1a382f;
-  --color-cyan-900: #142c25;
-  --color-cyan-950: #0c1e18;
+  /* Refined Medora brand palette - anchored to #214439 with improved contrast */
+  --color-cyan-50: #f5f8f6;
+  --color-cyan-100: #ecf2ee;
+  --color-cyan-200: #d7e5dd;
+  --color-cyan-300: #b8d0c3;
+  --color-cyan-400: #8fb3a2;
+  --color-cyan-500: #648d7c;
+  --color-cyan-600: #4c7465;
+  --color-cyan-700: #3b5e4f;
+  --color-cyan-800: #214439;
+  --color-cyan-900: #182e24;
+  --color-cyan-950: #0f1f17;
 
-  /* Clinical status semantics. Used for vitals, lab flags and triage. */
-  --color-status-normal: var(--color-emerald-600);
-  --color-status-abnormal: var(--color-amber-600);
-  --color-status-critical: var(--color-red-600);
+  /* Neutral surface scale */
+  --color-surface-50: #ffffff;
+  --color-surface-100: #f9fafb;
+  --color-surface-200: #f1f5f3;
 
-  --radius-card: 1rem;
+  /* Clinical status semantics */
+  --color-status-normal: #059669;
+  --color-status-abnormal: #d97706;
+  --color-status-critical: #dc2626;
+
+  --radius-xs: 0.375rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-card: var(--radius-xl);
+
+  /* Refined shadows for depth */
+  --shadow-xs: 0 1px 2px -1px rgb(15 31 23 / 0.03), 0 1px 1px -1px rgb(15 31 23 / 0.04);
+  --shadow-sm: 0 1px 2px -1px rgb(15 31 23 / 0.05), 0 2px 4px -2px rgb(15 31 23 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(15 31 23 / 0.08), 0 2px 4px -2px rgb(15 31 23 / 0.06);
+  --shadow-lg: 0 10px 15px -3px rgb(15 31 23 / 0.09), 0 4px 6px -4px rgb(15 31 23 / 0.05);
+  --shadow-xl: 0 20px 25px -5px rgb(15 31 23 / 0.1), 0 8px 10px -6px rgb(15 31 23 / 0.05);
+
+  /* Motion tokens */
+  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-soft: cubic-bezier(0.45, 0, 0.15, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
 }
 
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01";
+    font-optical-sizing: auto;
   }
 
   body {
     margin: 0;
-    background-color: #f8fafc;
+    background-color: #f8faf9;
     color: var(--color-cyan-950);
     font-family: var(--font-sans);
-    line-height: 1.5;
+    line-height: 1.65;
+    letter-spacing: -0.01em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
-  /* 3-4px focus ring, per WCAG AAA focus guidance. */
+  /* Refined focus ring - visible but not harsh */
   :focus-visible {
-    outline: 3px solid var(--color-cyan-600);
+    outline: 2px solid var(--color-cyan-600);
     outline-offset: 2px;
-    border-radius: 0.375rem;
+    border-radius: var(--radius-xs);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    font-weight: 700;
   }
 }
 
 @layer utilities {
-  /* Soft clinical glow behind the dashboard canvas. */
+  /* Subtle, refined background canvas - no harsh glows */
   .app-canvas {
     background-image:
-      radial-gradient(1100px 420px at 100% -10%, rgba(33, 68, 57, 0.12), transparent 60%),
-      radial-gradient(900px 380px at -5% 0%, rgba(33, 68, 57, 0.08), transparent 55%);
+      radial-gradient(1200px 500px at 100% -20%, rgba(33, 68, 57, 0.06), transparent 70%),
+      radial-gradient(1000px 450px at -10% 0%, rgba(33, 68, 57, 0.04), transparent 65%);
+    background-color: #f8faf9;
   }
 
+  /* Refined card shadow - more subtle, less "aura" */
   .card-shadow {
     box-shadow:
-      0 1px 2px rgba(12, 30, 24, 0.04),
-      0 12px 32px -16px rgba(33, 68, 57, 0.18);
+      0 1px 2px -1px rgb(15 31 23 / 0.03),
+      0 2px 4px -2px rgb(15 31 23 / 0.02),
+      0 12px 24px -12px rgb(15 31 23 / 0.12);
+  }
+
+  /* Subtle hover lift for interactive marketing cards only. */
+  .lift {
+    transition:
+      box-shadow var(--duration-base) var(--ease-out-soft),
+      transform var(--duration-base) var(--ease-out-soft);
+  }
+
+  .lift:hover {
+    box-shadow:
+      0 1px 2px -1px rgb(15 31 23 / 0.04),
+      0 4px 6px -2px rgb(15 31 23 / 0.03),
+      0 16px 28px -14px rgb(15 31 23 / 0.14);
+    transform: translateY(-2px);
   }
 
   /* Numeric columns in clinical tables must align. */
@@ -73,16 +134,34 @@
     top: 0.5rem;
     z-index: 50;
     transform: translateY(-200%);
-    background-color: var(--color-cyan-700);
+    background-color: var(--color-cyan-800);
     color: white;
-    padding: 0.75rem 1rem;
-    border-radius: 0.5rem;
+    padding: 0.625rem 0.875rem;
+    border-radius: var(--radius-md);
     font-weight: 600;
-    transition: transform 150ms ease;
+    font-size: 0.875rem;
+    transition: transform var(--duration-fast) var(--ease-out-soft);
+    box-shadow: var(--shadow-md);
   }
 
   .skip-link:focus {
     transform: translateY(0);
+  }
+
+  /* Staggered hero entrance - subtle fade + 8px rise, plays once. */
+  .reveal {
+    animation: reveal-up 700ms var(--ease-out-soft) both;
+  }
+
+  @keyframes reveal-up {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }
 

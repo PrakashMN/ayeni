@@ -1,6 +1,7 @@
 import { ArrowLeft, HeartPulse, type LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
+import { Parallax } from '../ui/Parallax'
 
 export interface RoleOption {
   label: string
@@ -96,13 +97,15 @@ export function AuthLayout({
           Secure • Compliant • Patient Centred
         </p>
 
-        <div
+        <Parallax
+          aria-hidden="true"
+          speed={0.18}
           className="pointer-events-none absolute -top-24 -right-24 h-80 w-80 rounded-full bg-cyan-500/20 blur-3xl"
-          aria-hidden="true"
         />
-        <div
-          className="pointer-events-none absolute -bottom-32 -left-20 h-80 w-80 rounded-full bg-cyan-400/10 blur-3xl"
+        <Parallax
           aria-hidden="true"
+          speed={0.26}
+          className="pointer-events-none absolute -bottom-32 -left-20 h-80 w-80 rounded-full bg-cyan-400/10 blur-3xl"
         />
       </aside>
 

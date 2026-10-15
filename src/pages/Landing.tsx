@@ -40,6 +40,8 @@ import {
 } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
+import { Parallax } from '../components/ui/Parallax'
+import { useParallax } from '../lib/parallax'
 
 /* ------------------------------------------------------------------ */
 /* Shared bits                                                         */
@@ -48,7 +50,7 @@ import { useNavigate } from 'react-router'
 function Brand({ onDark = false }: { onDark?: boolean }) {
   return (
     <div className="flex items-center gap-2.5">
-      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-800 text-white shadow-lg shadow-cyan-900/20">
+      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-800 text-white shadow-md">
         <HeartPulse className="h-5 w-5" aria-hidden="true" />
       </span>
       <span>
@@ -123,6 +125,180 @@ function SectionHeading({
           {description}
         </p>
       ) : null}
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Hero product preview                                                 */
+/* ------------------------------------------------------------------ */
+
+const previewStats: {
+  label: string
+  value: string
+  delta: string
+  icon: LucideIcon
+  up: boolean
+}[] = [
+  { label: 'Patients today', value: '128', delta: '+12%', icon: Users, up: true },
+  { label: 'Appointments', value: '46', delta: '+4%', icon: CalendarClock, up: true },
+  { label: 'Lab results ready', value: '31', delta: '−8%', icon: FlaskConical, up: false },
+  { label: 'Avg. wait time', value: '9m', delta: '−2m', icon: Clock, up: false },
+]
+
+const previewQueue: { time: string; name: string; type: string; status: string }[] = [
+  { time: '09:00', name: 'Ama Serwaa', type: 'Follow-up', status: 'In consult' },
+  { time: '09:30', name: 'Kwesi Boateng', type: 'Lab review', status: 'Waiting' },
+  { time: '10:15', name: 'Nana Adjei', type: 'New patient', status: 'Checked in' },
+  { time: '11:00', name: 'Efua Mensimah', type: 'Vaccination', status: 'Scheduled' },
+]
+
+const previewBars = [42, 58, 47, 71, 63, 84, 76]
+
+function DashboardPreview() {
+  return (
+    <div className="bg-white text-cyan-950" aria-hidden="true">
+      {/* Window chrome */}
+      <div className="flex items-center gap-3 border-b border-cyan-100 bg-cyan-50/80 px-4 py-2.5">
+        <span className="flex gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-rose-400" />
+          <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+          <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+        </span>
+        <span className="mx-auto flex items-center gap-1.5 rounded-md bg-white px-3 py-1 text-[11px] font-medium text-cyan-600 ring-1 ring-cyan-100">
+          <Lock className="h-3 w-3" />
+          app.medora.health/dashboard
+        </span>
+      </div>
+
+      <div className="flex">
+        {/* Icon rail */}
+        <div className="hidden w-14 shrink-0 flex-col items-center gap-2 bg-cyan-900 py-4 sm:flex">
+          <span className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-700 text-white">
+            <HeartPulse className="h-4 w-4" />
+          </span>
+          {[
+            { icon: BarChart3, active: true },
+            { icon: CalendarClock, active: false },
+            { icon: Users, active: false },
+            { icon: FlaskConical, active: false },
+            { icon: Pill, active: false },
+            { icon: ClipboardList, active: false },
+            { icon: MessageSquare, active: false },
+          ].map(({ icon: Icon, active }, index) => (
+            <span
+              key={index}
+              className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+                active ? 'bg-white/15 text-white' : 'text-cyan-300/70'
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+            </span>
+          ))}
+          <span className="mt-auto flex h-8 w-8 items-center justify-center rounded-full bg-cyan-500 text-[10px] font-bold text-white">
+            AM
+          </span>
+        </div>
+
+        {/* Main panel */}
+        <div className="min-w-0 flex-1 p-4 sm:p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold sm:text-base">Good morning, Dr. Mensah</p>
+              <p className="text-[11px] text-cyan-500">Tuesday, 14 October · Apex Health</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-100 bg-white text-cyan-500">
+                <Mail className="h-3.5 w-3.5" />
+              </span>
+              <span className="relative flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-100 bg-white text-cyan-500">
+                <Bell className="h-3.5 w-3.5" />
+                <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-rose-500" />
+              </span>
+              <span className="hidden items-center gap-1.5 rounded-lg bg-cyan-800 px-3 py-1.5 text-[11px] font-semibold text-white sm:flex">
+                <Activity className="h-3 w-3" />
+                Live
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+            {previewStats.map((stat) => (
+              <div
+                key={stat.label}
+                className="rounded-xl border border-cyan-100 bg-white p-3 shadow-sm"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-semibold text-cyan-500">{stat.label}</span>
+                  <stat.icon className="h-3.5 w-3.5 text-cyan-400" />
+                </div>
+                <p className="tabular mt-1.5 text-lg font-bold sm:text-xl">{stat.value}</p>
+                <p
+                  className={`text-[10px] font-semibold ${
+                    stat.up ? 'text-emerald-600' : 'text-cyan-600'
+                  }`}
+                >
+                  {stat.delta} vs last week
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-3 grid gap-3 lg:grid-cols-[1.2fr_1fr]">
+            <div className="rounded-xl border border-cyan-100 bg-white p-3.5">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold">Patient volume</p>
+                <span className="text-[10px] font-medium text-cyan-500">Last 7 days</span>
+              </div>
+              <div className="mt-3 flex h-24 items-end gap-2">
+                {previewBars.map((height, index) => (
+                  <div key={index} className="flex flex-1 flex-col items-center gap-1.5">
+                    <div
+                      className={`w-full rounded-t-md ${
+                        index === previewBars.length - 1
+                          ? 'bg-gradient-to-t from-cyan-600 to-cyan-400'
+                          : 'bg-cyan-200'
+                      }`}
+                      style={{ height: `${height}%` }}
+                    />
+                    <span className="text-[9px] font-medium text-cyan-400">
+                      {['M', 'T', 'W', 'T', 'F', 'S', 'S'][index]}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-cyan-100 bg-white p-3.5">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold">Today&apos;s schedule</p>
+                <span className="text-[10px] font-semibold text-cyan-600">4 visits</span>
+              </div>
+              <ul className="mt-2.5 space-y-2">
+                {previewQueue.map((visit) => (
+                  <li
+                    key={visit.time}
+                    className="flex items-center gap-2.5 rounded-lg bg-cyan-50/70 px-2.5 py-2"
+                  >
+                    <span className="tabular w-9 text-[10px] font-bold text-cyan-700">
+                      {visit.time}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[11px] font-semibold text-cyan-950">
+                        {visit.name}
+                      </span>
+                      <span className="block truncate text-[10px] text-cyan-500">{visit.type}</span>
+                    </span>
+                    <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[9px] font-bold text-cyan-700 ring-1 ring-cyan-200">
+                      {visit.status}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -435,6 +611,10 @@ export function Landing() {
   const [overHero, setOverHero] = useState(true)
   const heroRef = useRef<HTMLElement>(null)
 
+  // Reduced parallax intensity for cleaner, less "animated" feel
+  const heroContentRef = useParallax<HTMLDivElement>({ speed: 0.03, max: 20 })
+  const heroPreviewRef = useParallax<HTMLDivElement>({ speed: 0.04, max: 30 })
+
   useEffect(() => {
     const onScroll = () => {
       const height = heroRef.current?.offsetHeight ?? 0
@@ -454,7 +634,7 @@ export function Landing() {
       </a>
 
       {/* Announcement */}
-      <div className="bg-[#003D38] text-white">
+      <div className="bg-cyan-950 text-white">
         <div className="mx-auto flex max-w-7xl items-center justify-center gap-2 px-4 py-2.5 text-center text-xs font-medium sm:text-sm">
           <Sparkles className="h-4 w-4 shrink-0 text-cyan-300" aria-hidden="true" />
           <span className="text-cyan-100">
@@ -472,8 +652,10 @@ export function Landing() {
 
       {/* Nav */}
       <header
-        className={`sticky top-0 z-40 border-b backdrop-blur-xl transition-colors duration-300 ${
-          overHero ? 'border-white/10' : 'border-cyan-950/10'
+        className={`sticky top-0 z-40 border-b backdrop-blur-xl transition-all duration-300 ${
+          overHero
+            ? 'border-white/10 bg-cyan-950/80'
+            : 'border-cyan-950/5 bg-white/85'
         }`}
       >
         <div className="mx-auto flex h-18 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
@@ -488,7 +670,7 @@ export function Landing() {
                 href={link.href}
                 className={`rounded-lg px-3.5 py-2 text-sm font-semibold transition-colors duration-200 ${
                   overHero
-                    ? 'text-cyan-100 hover:bg-white/10 hover:text-white'
+                    ? 'text-cyan-100 hover:bg-white/5 hover:text-white'
                     : 'text-cyan-900 hover:bg-cyan-950/5 hover:text-cyan-950'
                 }`}
               >
@@ -512,11 +694,11 @@ export function Landing() {
             <button
               type="button"
               onClick={() => navigate('/get-started')}
-              className={`inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold shadow-sm transition-colors duration-200 ${
-                overHero
-                  ? 'bg-white text-cyan-900 hover:bg-cyan-50'
-                  : 'bg-[#003D38] text-white hover:bg-[#00342f]'
-              }`}
+                  className={`inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold shadow-sm transition-all duration-200 ${
+                    overHero
+                      ? 'bg-white text-cyan-900 hover:bg-cyan-50'
+                      : 'bg-cyan-800 text-white hover:bg-cyan-900'
+                  }`}
             >
               Get started
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
@@ -528,7 +710,7 @@ export function Landing() {
               aria-expanded={menuOpen}
               className={`flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl transition-colors duration-200 lg:hidden ${
                 overHero
-                  ? 'text-cyan-100 hover:bg-white/10 hover:text-white'
+                  ? 'text-cyan-100 hover:bg-white/5 hover:text-white'
                   : 'text-cyan-900 hover:bg-cyan-950/5 hover:text-cyan-950'
               }`}
             >
@@ -545,7 +727,7 @@ export function Landing() {
           <nav
             aria-label="Mobile"
             className={`border-t px-4 py-3 backdrop-blur-xl lg:hidden ${
-              overHero ? 'border-white/10 bg-[#003D38]/70' : 'border-cyan-950/10 bg-white/70'
+              overHero ? 'border-white/10 bg-cyan-950/90' : 'border-cyan-950/5 bg-white/90'
             }`}
           >
             <ul className="flex flex-col">
@@ -555,7 +737,7 @@ export function Landing() {
                     href={link.href}
                     onClick={() => setMenuOpen(false)}
                     className={`block rounded-lg px-3 py-3 text-sm font-semibold ${
-                      overHero ? 'text-cyan-100 hover:bg-white/10 hover:text-white' : 'text-cyan-900 hover:bg-cyan-950/5'
+                      overHero ? 'text-cyan-100 hover:bg-white/5 hover:text-white' : 'text-cyan-900 hover:bg-cyan-950/5'
                     }`}
                   >
                     {link.label}
@@ -570,7 +752,7 @@ export function Landing() {
                     navigate('/get-started')
                   }}
                   className={`mt-1 block w-full cursor-pointer rounded-lg px-3 py-3 text-center text-sm font-semibold ${
-                    overHero ? 'bg-white text-cyan-900' : 'bg-[#003D38] text-white'
+                    overHero ? 'bg-white text-cyan-900' : 'bg-cyan-800 text-white'
                   }`}
                 >
                   Get started
@@ -586,81 +768,77 @@ export function Landing() {
         <section
           id="top"
           ref={heroRef}
-          className="-mt-18 relative isolate overflow-hidden bg-[#003D38] text-white"
+          className="-mt-18 relative isolate overflow-hidden bg-gradient-to-b from-cyan-900 via-[#102820] to-cyan-950 text-white"
         >
           <div
-            className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#003D38] via-[#08211b] to-[#0c1e18]"
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
+            aria-hidden="true"
+          />
+          {/* Subtle noise-free geometric accent - no harsh glows */}
+          <div
+            className="pointer-events-none absolute -top-80 right-1/2 translate-x-1/2 h-[28rem] w-[36rem] rounded-full bg-white/5 blur-[100px]"
             aria-hidden="true"
           />
           <div
-            className="pointer-events-none absolute inset-0 opacity-25"
-            style={{
-              backgroundImage:
-                'radial-gradient(circle, rgba(255,255,255,0.7) 1px, transparent 1px)',
-              backgroundSize: '26px 26px',
-              maskImage: 'radial-gradient(ellipse 80% 60% at 50% 0%, black, transparent)',
-              WebkitMaskImage: 'radial-gradient(ellipse 80% 60% at 50% 0%, black, transparent)',
-            }}
-            aria-hidden="true"
-          />
-          <div
-            className="pointer-events-none absolute -top-52 left-1/2 h-[40rem] w-[52rem] max-w-full -translate-x-1/2 rounded-full bg-cyan-500/25 blur-3xl"
-            aria-hidden="true"
-          />
-          <div
-            className="pointer-events-none absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-emerald-400/15 blur-3xl"
-            aria-hidden="true"
-          />
-          <div
-            className="pointer-events-none absolute top-20 -right-40 h-96 w-96 rounded-full bg-cyan-400/10 blur-3xl"
+            className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 h-64 w-full max-w-7xl bg-gradient-to-t from-black/10 to-transparent"
             aria-hidden="true"
           />
 
           <div className="relative mx-auto max-w-7xl px-4 pt-24 pb-20 sm:px-6 lg:px-8 lg:pt-28">
-            <div className="mx-auto max-w-4xl text-center">
-              <div className="flex justify-center">
+            <div ref={heroContentRef} className="mx-auto max-w-4xl text-center">
+              <div className="flex justify-center reveal">
                 <Eyebrow icon={Sparkles} dark>
                   Trusted by care teams in 12 countries
                 </Eyebrow>
               </div>
-              <h1 className="mt-7 text-4xl font-bold tracking-tight text-white sm:text-6xl lg:text-7xl">
+              <h1
+                className="mt-7 text-4xl font-bold tracking-tight text-white reveal sm:text-6xl lg:text-7xl"
+                style={{ animationDelay: '70ms' }}
+              >
                 Better care,
-                <span className="block bg-gradient-to-r from-cyan-300 via-emerald-300 to-cyan-200 bg-clip-text text-transparent">
-                  delivered together.
-                </span>
+                <span className="block text-cyan-300">delivered together.</span>
               </h1>
-              <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-cyan-100 sm:text-xl">
+              <p
+                className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-cyan-50/90 reveal sm:text-xl"
+                style={{ animationDelay: '140ms' }}
+              >
                 Medora EHR unifies patients, clinicians, laboratories, pharmacy and front desk on one
-                secure platform — so every team works from the same up-to-date record.
+                secure platform—so every team works from a single, trusted source of truth.
               </p>
 
-              <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
+              <div
+                className="mt-9 flex flex-wrap items-center justify-center gap-3 reveal"
+                style={{ animationDelay: '210ms' }}
+              >
                 <button
                   type="button"
                   onClick={() => navigate('/get-started')}
-                  className="inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-xl bg-white px-7 text-sm font-semibold text-cyan-900 shadow-lg shadow-cyan-950/40 transition-all duration-200 hover:-translate-y-0.5 hover:bg-cyan-50"
-                >
+                   className="inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-xl bg-white px-7 text-sm font-semibold text-cyan-900 shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+                 >
                   Get started free
                   <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </button>
                 <a
                   href="#how"
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-7 text-sm font-semibold text-white ring-1 ring-inset ring-white/30 transition-colors duration-200 hover:bg-white/10"
-                >
+                   className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-7 text-sm font-semibold text-white ring-1 ring-inset ring-white/20 transition-colors duration-200 hover:bg-white/5"
+                 >
                   <PlayCircle className="h-4 w-4" aria-hidden="true" />
                   See how it works
                 </a>
               </div>
 
-              <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-6">
+              <div
+                className="mt-8 flex flex-col items-center justify-center gap-4 reveal sm:flex-row sm:gap-6"
+                style={{ animationDelay: '280ms' }}
+              >
                 <div className="flex items-center gap-3">
                   <ul className="flex -space-x-2.5">
                     {['AM', 'KB', 'GO', 'IQ', 'NA'].map((initials) => (
                       <li
                         key={initials}
-                        className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#08211b] bg-gradient-to-br from-cyan-400 to-cyan-600 text-xs font-bold text-white shadow-sm"
-                        aria-hidden="true"
-                      >
+                         className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#04140f] bg-gradient-to-br from-cyan-400 to-cyan-600 text-xs font-bold text-white shadow-sm ring-1 ring-white/10"
+                         aria-hidden="true"
+                       >
                         {initials}
                       </li>
                     ))}
@@ -691,66 +869,18 @@ export function Landing() {
               </div>
             </div>
 
-            <div className="relative mx-auto mt-12 max-w-5xl">
+            <div
+              ref={heroPreviewRef}
+              className="relative mx-auto mt-12 max-w-5xl reveal"
+              style={{ animationDelay: '300ms' }}
+            >
               <div
-                className="pointer-events-none absolute -inset-x-6 -top-10 bottom-4 rounded-[2.5rem] bg-cyan-400/20 blur-3xl"
+                className="pointer-events-none absolute -inset-x-6 -top-10 bottom-4 rounded-[2.5rem] bg-cyan-400/5 blur-3xl"
                 aria-hidden="true"
               />
 
-              <div className="[perspective:1600px]">
-                <div className="relative origin-top [transform:rotateX(5deg)]">
-                  <div className="overflow-hidden rounded-3xl shadow-2xl shadow-cyan-950/60 ring-1 ring-white/15">
-                    <DashboardPreview />
-                  </div>
-                </div>
-              </div>
-
-              <div className="absolute top-28 -left-8 z-20 hidden w-56 lg:block">
-                <div className="flex items-center gap-3 rounded-2xl border border-white/15 bg-white/10 p-3.5 shadow-xl shadow-cyan-950/40 backdrop-blur-md">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-400/20 text-emerald-200">
-                    <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-white">Appointment confirmed</p>
-                    <p className="text-[11px] text-cyan-200">Dr. Mensah · 09:30</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="absolute top-10 -right-8 z-20 hidden w-52 lg:block">
-                <div className="flex items-center gap-3 rounded-2xl border border-white/15 bg-white/10 p-3.5 shadow-xl shadow-cyan-950/40 backdrop-blur-md">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-400/20 text-cyan-200">
-                    <FlaskConical className="h-5 w-5" aria-hidden="true" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-white">Lab result ready</p>
-                    <p className="text-[11px] text-cyan-200">CBC · within range</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="absolute bottom-28 -left-6 z-20 hidden w-48 lg:block">
-                <div className="flex items-center gap-3 rounded-2xl border border-white/15 bg-white/10 p-3.5 shadow-xl shadow-cyan-950/40 backdrop-blur-md">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-400/20 text-cyan-200">
-                    <Activity className="h-5 w-5" aria-hidden="true" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-white">SpO₂ 98%</p>
-                    <p className="text-[11px] text-cyan-200">Normal range</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="absolute bottom-36 -right-6 z-20 hidden w-56 lg:block">
-                <div className="flex items-center gap-3 rounded-2xl border border-white/15 bg-white/10 p-3.5 shadow-xl shadow-cyan-950/40 backdrop-blur-md">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-400/20 text-amber-200">
-                    <BadgeCheck className="h-5 w-5" aria-hidden="true" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-white">Fully audited</p>
-                    <p className="text-[11px] text-cyan-200">HIPAA-minded workflow</p>
-                  </div>
-                </div>
+              <div className="overflow-hidden rounded-3xl shadow-xl ring-1 ring-black/5">
+                <DashboardPreview />
               </div>
             </div>
           </div>
@@ -759,14 +889,14 @@ export function Landing() {
         {/* Trusted by */}
         <section className="border-b border-cyan-100 bg-white">
           <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-            <p className="text-center text-xs font-semibold tracking-wider text-cyan-500 uppercase">
+            <p className="text-center text-xs font-semibold tracking-wider text-cyan-600 uppercase">
               Trusted by growing hospitals and clinics worldwide
             </p>
             <ul className="mt-6 flex flex-wrap items-center justify-center gap-x-10 gap-y-4">
               {trustedBy.map((name) => (
                 <li
                   key={name}
-                  className="flex items-center gap-2 text-base font-bold tracking-tight text-cyan-800/70"
+                  className="flex items-center gap-2 text-base font-semibold tracking-tight text-cyan-800/80"
                 >
                   <Building2 className="h-5 w-5" aria-hidden="true" />
                   {name}
@@ -777,12 +907,12 @@ export function Landing() {
         </section>
 
         {/* Stats */}
-        <section className="border-b border-cyan-100 bg-cyan-50/40">
+        <section className="border-b border-cyan-100/80 bg-surface-200/60">
           <div className="mx-auto grid max-w-7xl grid-cols-2 gap-4 px-4 py-12 sm:px-6 lg:grid-cols-4 lg:px-8">
             {heroStats.map((stat) => (
               <div
                 key={stat.label}
-                className="card-shadow rounded-2xl border border-cyan-200/70 bg-white p-6"
+                className="card-shadow lift rounded-2xl border border-cyan-200/60 bg-white p-6"
               >
                 <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-100 text-cyan-700">
                   <stat.icon className="h-5 w-5" aria-hidden="true" />
@@ -797,8 +927,13 @@ export function Landing() {
         </section>
 
         {/* Platform */}
-        <section id="platform" className="scroll-mt-20 bg-white">
-          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+        <section id="platform" className="relative scroll-mt-20 overflow-hidden bg-white">
+          <Parallax
+            aria-hidden="true"
+            speed={0.06}
+            className="pointer-events-none absolute -top-24 -right-32 h-80 w-80 rounded-full bg-cyan-400/6 blur-3xl"
+          />
+          <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
             <SectionHeading
               eyebrow="The platform"
               title="Everything your care team needs, in one place"
@@ -809,8 +944,8 @@ export function Landing() {
               {platformFeatures.map((feature) => (
                 <article
                   key={feature.title}
-                  className={`card-shadow group rounded-2xl border border-cyan-200/70 bg-white p-6 transition-transform duration-200 hover:-translate-y-0.5 ${feature.span ?? ''}`}
-                >
+                   className={`card-shadow lift group rounded-2xl border border-cyan-200/60 bg-white p-6 ${feature.span ?? ''}`}
+                 >
                   <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-100 text-cyan-700">
                     <feature.icon className="h-5 w-5" aria-hidden="true" />
                   </span>
@@ -836,8 +971,13 @@ export function Landing() {
         </section>
 
         {/* How it works */}
-        <section id="how" className="scroll-mt-20 border-y border-cyan-100 bg-cyan-50/40">
-          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+        <section id="how" className="relative scroll-mt-20 overflow-hidden border-y border-cyan-100/80 bg-surface-200/60">
+          <Parallax
+            aria-hidden="true"
+            speed={0.08}
+            className="pointer-events-none absolute -bottom-32 -left-24 h-80 w-80 rounded-full bg-emerald-400/5 blur-3xl"
+          />
+          <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
             <SectionHeading
               eyebrow="How it works"
               title="From first login to full rollout"
@@ -847,10 +987,10 @@ export function Landing() {
               {steps.map((item) => (
                 <li
                   key={item.step}
-                  className="card-shadow relative rounded-2xl border border-cyan-200/70 bg-white p-6"
-                >
+                   className="card-shadow lift relative rounded-2xl border border-cyan-200/60 bg-white p-6"
+                 >
                   <div className="flex items-center justify-between">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-700 to-cyan-500 text-white">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-800 text-white">
                       <item.icon className="h-5 w-5" aria-hidden="true" />
                     </span>
                     <span className="tabular text-3xl font-bold text-cyan-100">{item.step}</span>
@@ -864,8 +1004,13 @@ export function Landing() {
         </section>
 
         {/* Solutions */}
-        <section id="solutions" className="scroll-mt-20 bg-white">
-          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+        <section id="solutions" className="relative scroll-mt-20 overflow-hidden bg-white">
+          <Parallax
+            aria-hidden="true"
+            speed={0.05}
+            className="pointer-events-none absolute top-1/3 -right-28 h-96 w-96 rounded-full bg-cyan-400/5 blur-3xl"
+          />
+          <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
             <SectionHeading
               eyebrow="Built for every role"
               title="A dashboard shaped around how you work"
@@ -888,11 +1033,11 @@ export function Landing() {
                       type="button"
                       aria-selected={selected}
                       onClick={() => setActiveSolution(index)}
-                      className={`flex min-h-11 shrink-0 cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm font-semibold transition-all duration-200 lg:w-full ${
-                        selected
-                          ? 'border-cyan-600 bg-cyan-700 text-white shadow-sm'
-                          : 'border-cyan-200 bg-white text-cyan-800 hover:bg-cyan-50'
-                      }`}
+                       className={`flex min-h-11 shrink-0 cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm font-semibold transition-all duration-200 lg:w-full ${
+                         selected
+                           ? 'border-cyan-700 bg-cyan-800 text-white shadow-sm'
+                           : 'border-cyan-200/70 bg-white text-cyan-800 hover:bg-cyan-50'
+                       }`}
                     >
                       <item.icon
                         className={`h-4 w-4 shrink-0 ${selected ? 'text-white' : 'text-cyan-600'}`}
@@ -906,13 +1051,13 @@ export function Landing() {
 
               <div
                 role="tabpanel"
-                className="card-shadow rounded-2xl border border-cyan-200/70 bg-gradient-to-br from-cyan-50/80 to-white p-6 sm:p-8"
-              >
+                 className="card-shadow rounded-2xl border border-cyan-200/60 bg-white p-6 sm:p-8"
+               >
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-700 to-cyan-600 text-white shadow-lg shadow-cyan-900/25">
-                      <solution.icon className="h-6 w-6" aria-hidden="true" />
-                    </span>
+                     <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-800 text-white shadow-sm">
+                       <solution.icon className="h-6 w-6" aria-hidden="true" />
+                     </span>
                     <div>
                       <h3 className="text-xl font-bold text-cyan-950">{solution.role}</h3>
                       <p className="text-sm font-medium text-cyan-600">{solution.tagline}</p>
@@ -944,11 +1089,11 @@ export function Landing() {
                 </ul>
 
                 <div className="mt-6">
-                  <button
-                    type="button"
-                    onClick={() => navigate('/login')}
-                    className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-700 to-cyan-500 px-5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:opacity-90"
-                  >
+                   <button
+                     type="button"
+                     onClick={() => navigate('/login')}
+                     className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-cyan-800 px-5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-cyan-900"
+                   >
                     Open the {solution.role.toLowerCase()} dashboard
                     <ArrowRight className="h-4 w-4" aria-hidden="true" />
                   </button>
@@ -959,8 +1104,18 @@ export function Landing() {
         </section>
 
         {/* Security */}
-        <section id="security" className="scroll-mt-20 bg-[#003D38] text-white">
-          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+        <section id="security" className="relative scroll-mt-20 overflow-hidden bg-gradient-to-b from-cyan-900 to-cyan-950 text-white">
+          <Parallax
+            aria-hidden="true"
+            speed={0.08}
+            className="pointer-events-none absolute -top-20 -left-20 h-72 w-72 rounded-full bg-white/5 blur-3xl"
+          />
+          <Parallax
+            aria-hidden="true"
+            speed={0.1}
+            className="pointer-events-none absolute -right-24 -bottom-24 h-80 w-80 rounded-full bg-white/5 blur-3xl"
+          />
+          <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
             <div className="grid gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-center">
               <div>
                 <SectionHeading
@@ -1012,8 +1167,13 @@ export function Landing() {
         </section>
 
         {/* Testimonials */}
-        <section className="bg-white">
-          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+        <section className="relative overflow-hidden bg-surface-200/60">
+          <Parallax
+            aria-hidden="true"
+            speed={0.07}
+            className="pointer-events-none absolute -bottom-24 -left-32 h-72 w-72 rounded-full bg-cyan-400/5 blur-3xl"
+          />
+          <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
             <SectionHeading
               eyebrow="Loved by care teams"
               title="Results that speak for themselves"
@@ -1023,7 +1183,7 @@ export function Landing() {
               {testimonials.map((item) => (
                 <figure
                   key={item.name}
-                  className="card-shadow flex h-full flex-col rounded-2xl border border-cyan-200/70 bg-white p-6"
+                  className="card-shadow lift flex h-full flex-col rounded-2xl border border-cyan-200/60 bg-white p-6"
                 >
                   <Quote className="h-8 w-8 text-cyan-200" aria-hidden="true" />
                   <blockquote className="mt-3 flex-1 text-sm leading-relaxed text-cyan-800">
@@ -1035,7 +1195,7 @@ export function Landing() {
                     ))}
                   </div>
                   <figcaption className="mt-4 flex items-center gap-3 border-t border-cyan-100 pt-4">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-cyan-600 to-cyan-500 text-sm font-bold text-white">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-cyan-700 text-sm font-bold text-white">
                       {item.initials}
                     </span>
                     <span className="min-w-0">
@@ -1054,8 +1214,13 @@ export function Landing() {
         </section>
 
         {/* Integrations */}
-        <section className="border-y border-cyan-100 bg-cyan-50/40">
-          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+        <section className="relative overflow-hidden border-y border-cyan-100/80 bg-surface-200/60">
+          <Parallax
+            aria-hidden="true"
+            speed={0.08}
+            className="pointer-events-none absolute -top-28 left-1/4 h-72 w-72 rounded-full bg-cyan-500/5 blur-3xl"
+          />
+          <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
             <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center">
               <SectionHeading
                 eyebrow="Integrations"
@@ -1079,8 +1244,13 @@ export function Landing() {
         </section>
 
         {/* Pricing */}
-        <section id="pricing" className="scroll-mt-20 bg-white">
-          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+        <section id="pricing" className="relative scroll-mt-20 overflow-hidden bg-white">
+          <Parallax
+            aria-hidden="true"
+            speed={0.12}
+            className="pointer-events-none absolute -top-24 -left-24 h-80 w-80 rounded-full bg-cyan-400/5 blur-3xl"
+          />
+          <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
             <SectionHeading
               eyebrow="Pricing"
               title="Simple plans that scale with you"
@@ -1099,13 +1269,13 @@ export function Landing() {
                 aria-checked={annual}
                 aria-label="Toggle annual billing"
                 onClick={() => setAnnual((value) => !value)}
-                className={`relative h-7 w-13 cursor-pointer rounded-full transition-colors duration-200 ${
-                  annual ? 'bg-cyan-700' : 'bg-cyan-200'
+                className={`relative h-7 w-13 cursor-pointer rounded-full transition-colors duration-300 ${
+                  annual ? 'bg-cyan-800' : 'bg-cyan-200'
                 }`}
               >
                 <span
-                  className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all duration-200 ${
-                    annual ? 'left-7' : 'left-1'
+                  className={`absolute top-1 left-0 h-5 w-5 rounded-full bg-white shadow transition-transform duration-300 ${
+                    annual ? 'translate-x-7' : 'translate-x-1'
                   }`}
                 />
               </button>
@@ -1125,14 +1295,14 @@ export function Landing() {
                 return (
                   <div
                     key={plan.name}
-                    className={`relative flex h-full flex-col rounded-2xl border p-6 ${
+                    className={`relative flex h-full flex-col rounded-2xl border p-6 transition-shadow duration-300 ${
                       plan.highlight
-                        ? 'card-shadow border-cyan-600 bg-gradient-to-b from-cyan-50/80 to-white ring-2 ring-cyan-600'
-                        : 'card-shadow border-cyan-200/70 bg-white'
+                        ? 'card-shadow lift border-cyan-300 bg-white ring-2 ring-cyan-700'
+                        : 'card-shadow lift border-cyan-200/60 bg-white'
                     }`}
                   >
                     {plan.highlight ? (
-                      <span className="absolute -top-3 left-6 inline-flex items-center gap-1.5 rounded-full bg-cyan-700 px-3 py-1 text-xs font-semibold text-white">
+                      <span className="absolute -top-3 left-6 inline-flex items-center gap-1.5 rounded-full bg-cyan-800 px-3 py-1 text-xs font-semibold text-white">
                         <Star className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
                         Most popular
                       </span>
@@ -1179,7 +1349,7 @@ export function Landing() {
                       onClick={() => navigate('/get-started')}
                       className={`mt-7 inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-all duration-200 ${
                         plan.highlight
-                          ? 'bg-gradient-to-r from-cyan-700 to-cyan-500 text-white shadow-sm hover:opacity-90'
+                          ? 'bg-cyan-800 text-white shadow-sm hover:bg-cyan-900'
                           : 'bg-white text-cyan-700 ring-1 ring-inset ring-cyan-300 hover:bg-cyan-50'
                       }`}
                     >
@@ -1194,8 +1364,13 @@ export function Landing() {
         </section>
 
         {/* FAQ */}
-        <section id="faq" className="scroll-mt-20 border-t border-cyan-100 bg-cyan-50/40">
-          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+        <section id="faq" className="relative scroll-mt-20 overflow-hidden border-t border-cyan-100/80 bg-surface-200/60">
+          <Parallax
+            aria-hidden="true"
+            speed={0.07}
+            className="pointer-events-none absolute -bottom-28 -right-24 h-72 w-72 rounded-full bg-emerald-400/5 blur-3xl"
+          />
+          <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
             <div className="grid gap-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
               <SectionHeading
                 eyebrow="FAQ"
@@ -1207,11 +1382,11 @@ export function Landing() {
                 {faqs.map((faq) => (
                   <details
                     key={faq.q}
-                    className="group card-shadow rounded-2xl border border-cyan-200/70 bg-white p-5"
+                    className="group card-shadow lift rounded-2xl border border-cyan-200/60 bg-white p-5"
                   >
                     <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left text-base font-semibold text-cyan-950 marker:content-['']">
                       {faq.q}
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cyan-100 text-cyan-700 transition-transform duration-200 group-open:rotate-45">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cyan-100 text-cyan-800 transition-transform duration-300 group-open:rotate-45">
                         <span className="relative block h-3.5 w-3.5">
                           <span className="absolute top-1/2 left-0 h-0.5 w-full -translate-y-1/2 rounded bg-current" />
                           <span className="absolute top-0 left-1/2 h-full w-0.5 -translate-x-1/2 rounded bg-current" />
@@ -1227,9 +1402,9 @@ export function Landing() {
         </section>
 
         {/* CTA */}
-        <section className="app-canvas border-t border-cyan-100">
-          <div className="mx-auto max-w-4xl px-4 py-16 text-center sm:px-6 lg:px-8 lg:py-24">
-            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-700 to-cyan-500 text-white shadow-lg shadow-cyan-900/25">
+        <section className="relative app-canvas overflow-hidden border-t border-cyan-100/80">
+          <div className="relative mx-auto max-w-4xl px-4 py-16 text-center sm:px-6 lg:px-8 lg:py-24">
+            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-800 text-white shadow-md">
               <HeartPulse className="h-7 w-7" aria-hidden="true" />
             </span>
             <h2 className="mt-6 text-3xl font-bold tracking-tight text-cyan-950 sm:text-4xl">
@@ -1243,7 +1418,7 @@ export function Landing() {
               <button
                 type="button"
                 onClick={() => navigate('/get-started')}
-                className="inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-700 to-cyan-500 px-8 text-sm font-semibold text-white shadow-lg shadow-cyan-900/20 transition-all duration-200 hover:opacity-90"
+                className="inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-xl bg-cyan-800 px-8 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-cyan-900 hover:shadow-lg"
               >
                 Get started
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
@@ -1251,7 +1426,7 @@ export function Landing() {
               <button
                 type="button"
                 onClick={() => navigate('/login')}
-                className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-xl bg-white px-8 text-sm font-semibold text-cyan-700 ring-1 ring-inset ring-cyan-300 transition-colors duration-200 hover:bg-cyan-50"
+                className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-xl bg-white px-8 text-sm font-semibold text-cyan-800 ring-1 ring-inset ring-cyan-300 transition-colors duration-200 hover:bg-cyan-50"
               >
                 Sign in
               </button>
@@ -1261,7 +1436,7 @@ export function Landing() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-[#003D38] text-white">
+      <footer className="bg-cyan-950 text-white">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
           <div className="grid gap-10 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
             <div>
